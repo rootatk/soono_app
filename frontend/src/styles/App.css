@@ -23,6 +23,10 @@ body {
   line-height: 1.6;
 }
 
+main {
+  padding-top: 80px; /* Ajuste para a altura da navbar fixa */
+}
+
 /* ===== NAVBAR PERSONALIZADA ===== */
 .navbar-soono {
   background: linear-gradient(135deg, var(--soono-brown) 0%, var(--soono-light-brown) 100%);

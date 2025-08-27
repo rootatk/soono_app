@@ -31,10 +31,10 @@ const InsumoDetalhe = () => {
       setLoading(true);
       setError('');
 
-      const response = await insumoService.buscarPorId(id);
-      
-      if (response && response.data) {
-        setInsumo(response.data);
+      const insumoData = await insumoService.buscarPorId(id);
+
+      if (insumoData) {
+        setInsumo(insumoData);
       } else {
         setError('Insumo não encontrado');
       }
@@ -61,7 +61,7 @@ const InsumoDetalhe = () => {
       return;
     }
 
-    if (tipoMovimentacao === 'saida' && parseFloat(quantidade) > insumo.quantidadeEstoque) {
+    if (tipoMovimentacao === 'saida' && parseFloat(quantidade) > insumo.estoqueAtual) {
       setError('Quantidade de saída não pode ser maior que o estoque atual');
       return;
     }
@@ -80,7 +80,7 @@ const InsumoDetalhe = () => {
       await insumoService.movimentarEstoque(id, dadosMovimentacao);
       
       setSuccess(
-        `${tipoMovimentacao === 'entrada' ? 'Entrada' : 'Saída'} de ${quantidade} ${insumo.unidadeMedida} realizada com sucesso!`
+        `${tipoMovimentacao === 'entrada' ? 'Entrada' : 'Saída'} de ${quantidade} ${insumo.unidade} realizada com sucesso!`
       );
       
       setShowMovimentacaoModal(false);
@@ -102,10 +102,10 @@ const InsumoDetalhe = () => {
   const getStatusEstoque = () => {
     if (!insumo) return { classe: 'secondary', texto: 'N/A', icone: 'fa-question' };
 
-    if (insumo.quantidadeEstoque === 0) {
+    if (insumo.estoqueAtual === 0) {
       return { classe: 'danger', texto: 'SEM ESTOQUE', icone: 'fa-times-circle' };
     }
-    if (insumo.quantidadeEstoque <= insumo.estoqueMinimo) {
+    if (insumo.estoqueAtual <= insumo.estoqueMinimo) {
       return { classe: 'warning', texto: 'ESTOQUE BAIXO', icone: 'fa-exclamation-triangle' };
     }
     return { classe: 'success', texto: 'ESTOQUE OK', icone: 'fa-check-circle' };
@@ -147,7 +147,7 @@ const InsumoDetalhe = () => {
   }
 
   const statusEstoque = getStatusEstoque();
-  const valorTotalEstoque = insumo.custoUnitario * insumo.quantidadeEstoque;
+  const valorTotalEstoque = insumo.custoUnitario * insumo.estoqueAtual;
 
   return (
     <div className="container mt-4">
@@ -238,7 +238,7 @@ const InsumoDetalhe = () => {
             <button 
               className="btn btn-warning"
               onClick={() => abrirModalMovimentacao('saida')}
-              disabled={insumo.quantidadeEstoque === 0}
+              disabled={insumo.estoqueAtual === 0}
             >
               <i className="fas fa-minus me-2"></i>
               Saída
@@ -270,12 +270,12 @@ const InsumoDetalhe = () => {
                 <div className="col-md-6">
                   <label className="form-label text-muted">Custo Unitário:</label>
                   <div className="h5 text-soono-gold mb-0">
-                    {formatarMoeda(insumo.custoUnitario)} / {insumo.unidadeMedida}
+                    {formatarMoeda(insumo.custoUnitario)} / {insumo.unidade}
                   </div>
                 </div>
                 <div className="col-md-6">
                   <label className="form-label text-muted">Unidade de Medida:</label>
-                  <div className="text-capitalize">{insumo.unidadeMedida}</div>
+                  <div className="text-capitalize">{insumo.unidade}</div>
                 </div>
                 {insumo.fornecedor && (
                   <div className="col-md-6">
@@ -319,9 +319,9 @@ const InsumoDetalhe = () => {
               {/* Quantidade Atual */}
               <div className="mb-3">
                 <div className="display-6 text-soono-brown">
-                  {insumo.quantidadeEstoque}
+                  {insumo.estoqueAtual}
                 </div>
-                <small className="text-muted">{insumo.unidadeMedida} em estoque</small>
+                <small className="text-muted">{insumo.unidade} em estoque</small>
               </div>
 
               {/* Estoque Mínimo */}
@@ -344,7 +344,7 @@ const InsumoDetalhe = () => {
                   <div 
                     className={`progress-bar bg-${statusEstoque.classe}`}
                     style={{ 
-                      width: `${Math.min(100, Math.max(10, (insumo.quantidadeEstoque / (insumo.estoqueMinimo * 2)) * 100))}%` 
+                      width: `${Math.min(100, Math.max(10, (insumo.estoqueAtual / (insumo.estoqueMinimo * 2)) * 100))}%` 
                     }}
                   ></div>
                 </div>
@@ -354,13 +354,13 @@ const InsumoDetalhe = () => {
               </div>
 
               {/* Alertas de Estoque */}
-              {insumo.quantidadeEstoque === 0 && (
+              {insumo.estoqueAtual === 0 && (
                 <div className="alert alert-danger small py-2">
                   <i className="fas fa-exclamation-triangle me-1"></i>
                   Produto em falta!
                 </div>
               )}
-              {insumo.quantidadeEstoque > 0 && insumo.quantidadeEstoque <= insumo.estoqueMinimo && (
+              {insumo.estoqueAtual > 0 && insumo.estoqueAtual <= insumo.estoqueMinimo && (
                 <div className="alert alert-warning small py-2">
                   <i className="fas fa-exclamation-triangle me-1"></i>
                   Estoque baixo, considere repor!
@@ -389,7 +389,7 @@ const InsumoDetalhe = () => {
                 <button 
                   className="btn btn-warning btn-sm"
                   onClick={() => abrirModalMovimentacao('saida')}
-                  disabled={insumo.quantidadeEstoque === 0}
+                  disabled={insumo.estoqueAtual === 0}
                 >
                   <i className="fas fa-minus me-2"></i>
                   Registrar Saída
@@ -440,7 +440,7 @@ const InsumoDetalhe = () => {
                       <div className="col-6">
                         <small className="text-muted">Estoque Atual:</small>
                         <div className="fw-bold">
-                          {insumo.quantidadeEstoque} {insumo.unidadeMedida}
+                          {insumo.estoqueAtual} {insumo.unidade}
                         </div>
                       </div>
                       <div className="col-6">
@@ -465,12 +465,12 @@ const InsumoDetalhe = () => {
                         placeholder="0"
                         step="0.01"
                         min="0.01"
-                        max={tipoMovimentacao === 'saida' ? insumo.quantidadeEstoque : undefined}
+                        max={tipoMovimentacao === 'saida' ? insumo.estoqueAtual : undefined}
                         required
                       />
-                      <span className="input-group-text">{insumo.unidadeMedida}</span>
+                      <span className="input-group-text">{insumo.unidade}</span>
                     </div>
-                    {tipoMovimentacao === 'saida' && quantidade && parseFloat(quantidade) > insumo.quantidadeEstoque && (
+                    {tipoMovimentacao === 'saida' && quantidade && parseFloat(quantidade) > insumo.estoqueAtual && (
                       <div className="form-text text-danger">
                         <i className="fas fa-exclamation-triangle me-1"></i>
                         Quantidade não pode ser maior que o estoque atual
@@ -484,7 +484,7 @@ const InsumoDetalhe = () => {
                       <div className="row text-center">
                         <div className="col-4">
                           <div className="text-muted">Atual</div>
-                          <div className="fw-bold">{insumo.quantidadeEstoque}</div>
+                          <div className="fw-bold">{insumo.estoqueAtual}</div>
                         </div>
                         <div className="col-4">
                           <div className={`text-${tipoMovimentacao === 'entrada' ? 'success' : 'warning'}`}>
@@ -495,8 +495,8 @@ const InsumoDetalhe = () => {
                           <div className="text-muted">Novo</div>
                           <div className="fw-bold">
                             {tipoMovimentacao === 'entrada' 
-                              ? insumo.quantidadeEstoque + parseFloat(quantidade)
-                              : insumo.quantidadeEstoque - parseFloat(quantidade)
+                              ? insumo.estoqueAtual + parseFloat(quantidade)
+                              : insumo.estoqueAtual - parseFloat(quantidade)
                             }
                           </div>
                         </div>

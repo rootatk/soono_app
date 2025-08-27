@@ -180,7 +180,7 @@ const InsumoList = () => {
             <span 
               className="text-decoration-underline" 
               style={{ cursor: 'pointer' }}
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
             >
               Dashboard
             </span>

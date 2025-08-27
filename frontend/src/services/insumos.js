@@ -12,7 +12,7 @@ export const insumoService = {
       if (filtros.nome) params.append('nome', filtros.nome);
       if (filtros.categoria) params.append('categoria', filtros.categoria);
       if (filtros.variacao) params.append('variacao', filtros.variacao);
-      if (filtros.estoqueAbaixoMinimo) params.append('estoqueAbaixoMinimo', 'true');
+      if (filtros.estoque_baixo) params.append('estoque_baixo', 'true');
       
       const url = params.toString() ? `/insumos?${params.toString()}` : '/insumos';
       const response = await api.get(url);
@@ -159,7 +159,7 @@ export const insumoService = {
         throw new Error('Quantidade deve ser maior que zero');
       }
 
-      const response = await api.post(`/insumos/${id}/movimentar`, dadosMovimentacao);
+      const response = await api.put(`/insumos/${id}/estoque`, dadosMovimentacao);
       console.log('✅ Estoque movimentado:', response.data);
       
       // 🔧 CORREÇÃO: Extrair dados do formato aninhado
@@ -205,7 +205,7 @@ export const insumoService = {
     try {
       console.log('Buscando insumos com estoque baixo...');
       
-      const response = await api.get('/insumos?estoqueAbaixoMinimo=true');
+      const response = await api.get('/insumos?estoque_baixo=true');
       console.log('Insumos com estoque baixo:', response.data);
       
       // 🔧 CORREÇÃO: Extrair dados do formato aninhado
