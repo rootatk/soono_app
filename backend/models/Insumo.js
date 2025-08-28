@@ -64,6 +64,14 @@ const Insumo = sequelize.define('Insumo', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true
+  },
+  fornecedor: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  observacoes: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'insumos',

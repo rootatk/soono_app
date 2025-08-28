@@ -421,21 +421,24 @@ const InsumoList = () => {
                         onClick={() => navigate(`/insumos/${insumo.id}`)}
                         title="Ver detalhes"
                       >
-                        <i className="fas fa-eye"></i>
+                        <i className="fas fa-eye me-1"></i>
+                        Ver
                       </button>
                       <button
                         className="btn btn-outline-warning btn-sm flex-fill"
                         onClick={() => navigate(`/insumos/${insumo.id}/editar`)}
                         title="Editar"
                       >
-                        <i className="fas fa-edit"></i>
+                        <i className="fas fa-edit me-1"></i>
+                        Editar
                       </button>
                       <button
                         className="btn btn-outline-danger btn-sm flex-fill"
                         onClick={() => confirmarExclusao(insumo)}
                         title="Excluir"
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-trash me-1"></i>
+                        Excluir
                       </button>
                     </div>
                   </div>

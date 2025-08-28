@@ -1,0 +1,384 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { 
+  Container, Row, Col, Card, Button, Badge, Alert, 
+  Modal, Table, ListGroup
+} from 'react-bootstrap';
+import produtosService from '../../services/produtos';
+import { formatarMoeda } from '../../utils/formatarMoeda';
+
+const ProdutoDetalhe = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  
+  const [produto, setProduto] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showModalExcluir, setShowModalExcluir] = useState(false);
+
+  useEffect(() => {
+    carregarProduto();
+  }, [id]);
+
+  const carregarProduto = async () => {
+    try {
+      setLoading(true);
+      const data = await produtosService.obterProduto(id);
+      setProduto(data);
+    } catch (err) {
+      setError('Erro ao carregar produto: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExcluir = async () => {
+    try {
+      await produtosService.excluirProduto(id);
+      setSuccess('Produto excluído com sucesso!');
+      setTimeout(() => {
+        navigate('/produtos');
+      }, 2000);
+    } catch (err) {
+      setError('Erro ao excluir produto: ' + err.message);
+    } finally {
+      setShowModalExcluir(false);
+    }
+  };
+
+  const calcularMargemLucro = () => {
+    if (!produto?.custoTotal || produto.custoTotal === 0) return 0;
+    return ((produto.precoVenda - produto.custoTotal) / produto.custoTotal * 100);
+  };
+
+  const calcularLucroUnitario = () => {
+    return (produto?.precoVenda || 0) - (produto?.custoTotal || 0);
+  };
+
+  const getVarianteStatus = (margem) => {
+    if (margem < 10) return { bg: 'danger', text: 'Margem Muito Baixa' };
+    if (margem < 20) return { bg: 'warning', text: 'Margem Baixa' };
+    if (margem < 30) return { bg: 'info', text: 'Margem Boa' };
+    return { bg: 'success', text: 'Margem Excelente' };
+  };
+
+  const custoInsumos = produto?.insumos?.reduce((total, insumo) => 
+    total + (insumo.quantidade * insumo.custoUnitario), 0) || 0;
+  
+  const custoMaoDeObra = (produto?.maoDeObraHoras || 0) * (produto?.maoDeObraCustoHora || 0);
+
+  if (loading) {
+    return (
+      <Container className="mt-4">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      </Container>
+    );
+  }
+
+  if (!produto) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="warning">
+          Produto não encontrado.
+          <div className="mt-2">
+            <Button variant="outline-primary" onClick={() => navigate('/produtos')}>
+              Voltar para Lista
+            </Button>
+          </div>
+        </Alert>
+      </Container>
+    );
+  }
+
+  const margem = calcularMargemLucro();
+  const statusMargem = getVarianteStatus(margem);
+
+  return (
+    <Container className="mt-4">
+      <Row>
+        <Col>
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb">
+              <li className="breadcrumb-item">
+                <Button variant="link" onClick={() => navigate('/produtos')} className="p-0">
+                  Produtos
+                </Button>
+              </li>
+              <li className="breadcrumb-item active">
+                {produto.nome}
+              </li>
+            </ol>
+          </nav>
+
+          {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+          {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
+
+          <Row>
+            {/* Informações Principais */}
+            <Col lg={8}>
+              <Card className="card-soono mb-4">
+                <Card.Header className="bg-soono-primary text-white">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <h4 className="mb-0">{produto.nome}</h4>
+                    <Badge bg={statusMargem.bg} className="fs-6">
+                      {statusMargem.text}
+                    </Badge>
+                  </div>
+                </Card.Header>
+
+                <Card.Body>
+                  {produto.categoria && (
+                    <div className="mb-3">
+                      <Badge bg="secondary" className="fs-6">
+                        {produto.categoria}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {produto.descricao && (
+                    <div className="mb-4">
+                      <h6>Descrição</h6>
+                      <p className="text-muted">{produto.descricao}</p>
+                    </div>
+                  )}
+
+                  {/* Resumo Financeiro */}
+                  <Row className="mb-4">
+                    <Col md={6}>
+                      <Card className="bg-light h-100">
+                        <Card.Body className="text-center">
+                          <h5 className="text-primary mb-1">
+                            {formatarMoeda(produto.custoTotal || 0)}
+                          </h5>
+                          <small className="text-muted">Custo Total</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                    <Col md={6}>
+                      <Card className="bg-success text-white h-100">
+                        <Card.Body className="text-center">
+                          <h5 className="mb-1">
+                            {formatarMoeda(produto.precoVenda || 0)}
+                          </h5>
+                          <small>Preço de Venda</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  </Row>
+
+                  <Row>
+                    <Col md={4}>
+                      <Card className="bg-info text-white h-100">
+                        <Card.Body className="text-center">
+                          <h6 className="mb-1">{margem.toFixed(1)}%</h6>
+                          <small>Margem de Lucro</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                    <Col md={4}>
+                      <Card className="bg-warning text-white h-100">
+                        <Card.Body className="text-center">
+                          <h6 className="mb-1">
+                            {formatarMoeda(calcularLucroUnitario())}
+                          </h6>
+                          <small>Lucro por Unidade</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                    <Col md={4}>
+                      <Card className="bg-secondary text-white h-100">
+                        <Card.Body className="text-center">
+                          <h6 className="mb-1">{produto.insumos?.length || 0}</h6>
+                          <small>Insumos Usados</small>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+
+              {/* Insumos Detalhados */}
+              {produto.insumos && produto.insumos.length > 0 && (
+                <Card className="card-soono mb-4">
+                  <Card.Header>
+                    <h5 className="mb-0">Insumos Utilizados</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="table-responsive">
+                      <Table striped hover>
+                        <thead>
+                          <tr>
+                            <th>Insumo</th>
+                            <th className="text-center">Quantidade</th>
+                            <th className="text-end">Valor Unit.</th>
+                            <th className="text-end">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {produto.insumos.map((insumo, index) => (
+                            <tr key={index}>
+                              <td>
+                                <strong>{insumo.nome}</strong>
+                                {insumo.variacao && (
+                                  <Badge bg="light" text="dark" className="ms-2 small">
+                                    {insumo.variacao}
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="text-center">{insumo.quantidade}</td>
+                              <td className="text-end">{formatarMoeda(insumo.custoUnitario)}</td>
+                              <td className="text-end">
+                                <strong>
+                                  {formatarMoeda(insumo.quantidade * insumo.custoUnitario)}
+                                </strong>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="table-light">
+                          <tr>
+                            <th colSpan="3">Subtotal Insumos:</th>
+                            <th className="text-end">
+                              {formatarMoeda(custoInsumos)}
+                            </th>
+                          </tr>
+                        </tfoot>
+                      </Table>
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
+            </Col>
+
+            {/* Painel Lateral */}
+            <Col lg={4}>
+              {/* Mão de Obra */}
+              <Card className="card-soono mb-4">
+                <Card.Header>
+                  <h6 className="mb-0">Mão de Obra</h6>
+                </Card.Header>
+                <Card.Body>
+                  <ListGroup variant="flush">
+                    <ListGroup.Item className="d-flex justify-content-between px-0">
+                      <span>Horas trabalhadas:</span>
+                      <strong>{produto.maoDeObraHoras || 0}h</strong>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between px-0">
+                      <span>Valor por hora:</span>
+                      <strong>{formatarMoeda(produto.maoDeObraCustoHora || 0)}</strong>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between px-0 border-top">
+                      <span>Custo total:</span>
+                      <strong className="text-primary">
+                        {formatarMoeda(custoMaoDeObra)}
+                      </strong>
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Card.Body>
+              </Card>
+
+              {/* Composição de Custos */}
+              <Card className="card-soono mb-4">
+                <Card.Header>
+                  <h6 className="mb-0">Composição de Custos</h6>
+                </Card.Header>
+                <Card.Body>
+                  <ListGroup variant="flush">
+                    <ListGroup.Item className="d-flex justify-content-between px-0">
+                      <span>Insumos:</span>
+                      <span>{formatarMoeda(custoInsumos)}</span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between px-0">
+                      <span>Mão de obra:</span>
+                      <span>{formatarMoeda(custoMaoDeObra)}</span>
+                    </ListGroup.Item>
+                    <ListGroup.Item className="d-flex justify-content-between px-0 border-top">
+                      <strong>Total:</strong>
+                      <strong className="text-primary">
+                        {formatarMoeda(produto.custoTotal || 0)}
+                      </strong>
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Card.Body>
+              </Card>
+
+              {/* Ações */}
+              <Card className="card-soono">
+                <Card.Header>
+                  <h6 className="mb-0">Ações</h6>
+                </Card.Header>
+                <Card.Body>
+                  <div className="d-grid gap-2">
+                    <Button
+                      variant="success"
+                      onClick={() => navigate(`/produtos/${id}/editar`)}
+                    >
+                      Editar Produto
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      onClick={() => navigate('/calculadora', { 
+                        state: { produtoId: id, produtoNome: produto.nome } 
+                      })}
+                    >
+                      Simular Preços
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      onClick={() => navigate('/produtos')}
+                    >
+                      Voltar à Lista
+                    </Button>
+                    <hr />
+                    <Button
+                      variant="outline-danger"
+                      onClick={() => setShowModalExcluir(true)}
+                    >
+                      Excluir Produto
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Col>
+      </Row>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <Modal show={showModalExcluir} onHide={() => setShowModalExcluir(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Exclusão</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            <strong>Atenção!</strong> Tem certeza que deseja excluir o produto "{produto.nome}"?
+          </Alert>
+          <p>Esta ação não pode ser desfeita e irá remover permanentemente:</p>
+          <ul>
+            <li>Todas as informações do produto</li>
+            <li>Composição de insumos</li>
+            <li>Configurações de preço e margem</li>
+          </ul>
+          <small className="text-muted">
+            Nota: As vendas já realizadas deste produto serão mantidas no histórico.
+          </small>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModalExcluir(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={handleExcluir}>
+            Sim, Excluir Produto
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
+  );
+};
+
+export default ProdutoDetalhe;

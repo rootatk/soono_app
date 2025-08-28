@@ -12,6 +12,11 @@ import InsumoForm from './components/Insumos/InsumoForm';
 import InsumoList from './components/Insumos/InsumoList';
 import InsumoDetalhe from './components/Insumos/InsumoDetalhe';
 
+// Componentes de Produtos
+import ProdutoForm from './components/Produtos/ProdutoForm';
+import ProdutoList from './components/Produtos/ProdutoList';
+import ProdutoDetalhe from './components/Produtos/ProdutoDetalhe';
+
 // Adicione esta importação temporária no App.js
 import DebugInsumos from './components/Insumos/DebugInsumos';
 
@@ -34,14 +39,10 @@ function App() {
             <Route path="/insumos" element={<InsumoList />} />
             
             {/* Rotas futuras - Produtos */}
-            <Route path="/produtos" element={
-              <div className="container mt-4">
-                <div className="alert alert-info">
-                  <h4>Produtos</h4>
-                  <p>Módulo em desenvolvimento (Fase 4B)</p>
-                </div>
-              </div>
-            } />
+            <Route path="/produtos/novo" element={<ProdutoForm />} />
+            <Route path="/produtos/:id/editar" element={<ProdutoForm />} />
+            <Route path="/produtos/:id" element={<ProdutoDetalhe />} />
+            <Route path="/produtos" element={<ProdutoList />} />
             
             {/* Rotas futuras - Vendas */}
             <Route path="/vendas" element={

@@ -62,10 +62,9 @@ const InsumoForm = () => {
       setLoading(true);
       setError('');
       
-      const response = await insumoService.buscarPorId(id);
+      const insumo = await insumoService.buscarPorId(id);
       
-      if (response.data) {
-        const insumo = response.data;
+      if (insumo) {
         setFormData({
           nome: insumo.nome || '',
           categoria: insumo.categoria || '',
@@ -139,10 +138,15 @@ const InsumoForm = () => {
       setError('');
 
       const dadosParaEnvio = {
-        ...formData,
+        nome: formData.nome,
+        categoria: formData.categoria,
         custoUnitario: parseFloat(formData.custoUnitario),
+        unidade: formData.unidade,
         estoqueAtual: parseFloat(formData.estoqueAtual),
-        estoqueMinimo: parseFloat(formData.estoqueMinimo)
+        estoqueMinimo: parseFloat(formData.estoqueMinimo),
+        variacao: formData.variacao || null,
+        fornecedor: formData.fornecedor,
+        observacoes: formData.observacoes,
       };
 
       let response;
