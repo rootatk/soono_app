@@ -1,6 +1,7 @@
 // src/components/Insumos/InsumoList.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button, Container, Row, Col } from 'react-bootstrap';
 import { insumoService } from '../../services/insumos';
 import { formatarMoeda } from '../../utils/formatarMoeda';
 
@@ -172,7 +173,9 @@ const InsumoList = () => {
   }
 
   return (
-    <div className="container mt-4">
+    <Container className="mt-4">
+      <Row>
+        <Col>
       {/* Breadcrumb */}
       <nav aria-label="breadcrumb">
         <ol className="breadcrumb">
@@ -192,9 +195,9 @@ const InsumoList = () => {
       </nav>
 
       {/* Cabeçalho */}
-      <div className="row align-items-center mb-4">
-        <div className="col-md-6">
-          <h2 className="text-soono-brown">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="text-soono-brown mb-0">
             <i className="fas fa-cubes me-2"></i>
             Gestão de Insumos
           </h2>
@@ -206,15 +209,14 @@ const InsumoList = () => {
             )}
           </p>
         </div>
-        <div className="col-md-6 text-end">
-          <button 
-            className="btn btn-soono-primary"
-            onClick={() => navigate('/insumos/novo')}
-          >
-            <i className="fas fa-plus me-2"></i>
-            Novo Insumo
-          </button>
-        </div>
+        <Button 
+          variant="primary" 
+          className="btn-soono-primary"
+          onClick={() => navigate('/insumos/novo')}
+        >
+          <i className="fas fa-plus me-2"></i>
+          Novo Insumo
+        </Button>
       </div>
 
       {/* Alertas */}
@@ -239,9 +241,9 @@ const InsumoList = () => {
           </h5>
         </div>
         <div className="card-body">
-          <div className="row g-3">
+          <Row className="g-3">
             {/* Nome */}
-            <div className="col-md-4">
+            <Col md={4}>
               <label className="form-label">Nome</label>
               <input
                 type="text"
@@ -251,10 +253,10 @@ const InsumoList = () => {
                 onChange={handleFiltroChange}
                 placeholder="Buscar por nome..."
               />
-            </div>
+            </Col>
 
             {/* Categoria */}
-            <div className="col-md-3">
+            <Col md={3}>
               <label className="form-label">Categoria</label>
               <select
                 className="form-select"
@@ -269,10 +271,10 @@ const InsumoList = () => {
                   </option>
                 ))}
               </select>
-            </div>
+            </Col>
 
             {/* Variação */}
-            <div className="col-md-2">
+            <Col md={2}>
               <label className="form-label">Variação</label>
               <select
                 className="form-select"
@@ -287,10 +289,10 @@ const InsumoList = () => {
                   </option>
                 ))}
               </select>
-            </div>
+            </Col>
 
             {/* Checkbox Estoque Baixo */}
-            <div className="col-md-3 d-flex align-items-end">
+            <Col md={3} className="d-flex align-items-end">
               <div className="form-check">
                 <input
                   type="checkbox"
@@ -304,12 +306,12 @@ const InsumoList = () => {
                   Apenas estoque baixo
                 </label>
               </div>
-            </div>
-          </div>
+            </Col>
+          </Row>
 
           {/* Botão Limpar */}
-          <div className="row mt-3">
-            <div className="col-12">
+          <Row className="mt-3">
+            <Col xs={12}>
               <button 
                 className="btn btn-outline-secondary"
                 onClick={limparFiltros}
@@ -317,8 +319,8 @@ const InsumoList = () => {
                 <i className="fas fa-eraser me-2"></i>
                 Limpar Filtros
               </button>
-            </div>
-          </div>
+            </Col>
+          </Row>
         </div>
       </div>
 
@@ -351,13 +353,13 @@ const InsumoList = () => {
           )}
         </div>
       ) : (
-        <div className="row">
+        <Row>
           {insumosFiltrados.map(insumo => {
             const alerta = getAlertaEstoque(insumo);
             const valorTotalEstoque = insumo.custoUnitario * insumo.estoqueAtual;
 
             return (
-              <div key={insumo.id} className="col-md-6 col-lg-4 mb-4">
+              <Col key={insumo.id} md={6} lg={4} className="mb-4">
                 <div className="card card-soono h-100">
                   <div className="card-body d-flex flex-column">
                     {/* Cabeçalho do Card */}
@@ -383,28 +385,28 @@ const InsumoList = () => {
 
                     {/* Informações */}
                     <div className="mb-3 flex-grow-1">
-                      <div className="row g-2">
-                        <div className="col-6">
+                      <Row className="g-2">
+                        <Col xs={6}>
                           <small className="text-muted">Custo Unitário:</small>
                           <div className="fw-bold">{formatarMoeda(insumo.custoUnitario)}</div>
-                        </div>
-                        <div className="col-6">
+                        </Col>
+                        <Col xs={6}>
                           <small className="text-muted">Em Estoque:</small>
                           <div className="fw-bold">
                             {insumo.estoqueAtual} {insumo.unidade}
                           </div>
-                        </div>
-                        <div className="col-6">
+                        </Col>
+                        <Col xs={6}>
                           <small className="text-muted">Estoque Mín.:</small>
                           <div>{insumo.estoqueMinimo} {insumo.unidade}</div>
-                        </div>
-                        <div className="col-6">
+                        </Col>
+                        <Col xs={6}>
                           <small className="text-muted">Valor Total:</small>
                           <div className="fw-bold text-soono-gold">
                             {formatarMoeda(valorTotalEstoque)}
                           </div>
-                        </div>
-                      </div>
+                        </Col>
+                      </Row>
 
                       {insumo.fornecedor && (
                         <div className="mt-2">
@@ -443,10 +445,10 @@ const InsumoList = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Col>
             );
           })}
-        </div>
+        </Row>
       )}
 
       {/* Modal de Confirmação de Exclusão */}
@@ -498,40 +500,40 @@ const InsumoList = () => {
 
       {/* Resumo Estatístico */}
       {insumosFiltrados.length > 0 && (
-        <div className="row mt-4">
-          <div className="col-12">
+        <Row className="mt-4">
+          <Col xs={12}>
             <div className="card card-soono">
               <div className="card-body">
                 <h6 className="card-title">
                   <i className="fas fa-chart-bar me-2"></i>
                   Resumo do Estoque
                 </h6>
-                <div className="row text-center">
-                  <div className="col-md-3">
+                <Row className="text-center">
+                  <Col md={3}>
                     <div className="h4 text-soono-brown mb-0">
                       {insumosFiltrados.length}
                     </div>
                     <small className="text-muted">Total de Insumos</small>
-                  </div>
-                  <div className="col-md-3">
+                  </Col>
+                  <Col md={3}>
                     <div className="h4 text-success mb-0">
                       {insumosFiltrados.filter(i => i.estoqueAtual > i.estoqueMinimo).length}
                     </div>
                     <small className="text-muted">Estoque OK</small>
-                  </div>
-                  <div className="col-md-3">
+                  </Col>
+                  <Col md={3}>
                     <div className="h4 text-warning mb-0">
                       {insumosFiltrados.filter(i => i.estoqueAtual > 0 && i.estoqueAtual <= i.estoqueMinimo).length}
                     </div>
                     <small className="text-muted">Estoque Baixo</small>
-                  </div>
-                  <div className="col-md-3">
+                  </Col>
+                  <Col md={3}>
                     <div className="h4 text-danger mb-0">
                       {insumosFiltrados.filter(i => i.estoqueAtual === 0).length}
                     </div>
                     <small className="text-muted">Sem Estoque</small>
-                  </div>
-                </div>
+                  </Col>
+                </Row>
                 <hr />
                 <div className="text-center">
                   <div className="h5 text-soono-gold mb-0">
@@ -545,10 +547,12 @@ const InsumoList = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </Col>
+        </Row>
       )}
-    </div>
+    </Col>
+  </Row>
+</Container>
   );
 };
 

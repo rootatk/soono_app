@@ -157,12 +157,25 @@ const ProdutoList = () => {
           </nav>
 
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-soono-brown mb-0">Gestão de Produtos</h2>
+            <div>
+              <h2 className="text-soono-brown mb-0">
+                <i className="fas fa-box-open me-2"></i>
+                Gestão de Produtos
+              </h2>
+              <p className="text-muted mb-0">
+                {produtosFiltrados.length} produto{produtosFiltrados.length !== 1 ? 's' : ''} 
+                {busca || categoriaFiltro ? ' (filtrado)' : ''}
+                {produtos.length > 0 && produtosFiltrados.length !== produtos.length && (
+                  <span> de {produtos.length} total</span>
+                )}
+              </p>
+            </div>
             <Button 
               variant="primary" 
               className="btn-soono-primary"
               onClick={() => navigate('/produtos/novo')}
             >
+              <i className="fas fa-plus me-2"></i>
               Novo Produto
             </Button>
           </div>

@@ -1,6 +1,7 @@
 // src/components/Insumos/InsumoForm.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { insumoService } from '../../services/insumos';
 import { formatarMoeda } from '../../utils/formatarMoeda';
 
@@ -176,328 +177,310 @@ const InsumoForm = () => {
 
   if (loading && isEdit) {
     return (
-      <div className="container mt-4">
+      <Container className="mt-4">
         <div className="text-center">
           <div className="spinner-border text-warning" role="status">
             <span className="visually-hidden">Carregando...</span>
           </div>
           <p className="mt-2">Carregando dados do insumo...</p>
         </div>
-      </div>
+      </Container>
     );
   }
 
   return (
-    <div className="container mt-4">
-      {/* Breadcrumb */}
-      <nav aria-label="breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item">
-            <span 
-              className="text-decoration-underline" 
-              style={{ cursor: 'pointer' }}
-              onClick={() => navigate('/dashboard')}
-            >
-              Dashboard
-            </span>
-          </li>
-          <li className="breadcrumb-item">
-            <span 
-              className="text-decoration-underline" 
-              style={{ cursor: 'pointer' }}
-              onClick={() => navigate('/insumos')}
-            >
-              Insumos
-            </span>
-          </li>
-          <li className="breadcrumb-item active" aria-current="page">
-            {isEdit ? 'Editar Insumo' : 'Novo Insumo'}
-          </li>
-        </ol>
-      </nav>
+    <Container className="mt-4">
+      <Row>
+        <Col>
+          {/* Breadcrumb */}
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb">
+              <li className="breadcrumb-item">
+                <span 
+                  className="text-decoration-underline" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Dashboard
+                </span>
+              </li>
+              <li className="breadcrumb-item">
+                <span 
+                  className="text-decoration-underline" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate('/insumos')}
+                >
+                  Insumos
+                </span>
+              </li>
+              <li className="breadcrumb-item active" aria-current="page">
+                {isEdit ? 'Editar Insumo' : 'Novo Insumo'}
+              </li>
+            </ol>
+          </nav>
 
-      {/* Título */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <h2 className="text-soono-brown">
-            {isEdit ? 'Editar Insumo' : 'Cadastrar Novo Insumo'}
-          </h2>
-        </div>
-      </div>
+          {/* Título */}
+          <Row className="mb-4">
+            <Col>
+              <h2 className="text-soono-brown">
+                {isEdit ? 'Editar Insumo' : 'Cadastrar Novo Insumo'}
+              </h2>
+            </Col>
+          </Row>
 
-      {/* Alertas */}
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          <i className="fas fa-exclamation-triangle me-2"></i>
-          {error}
-          <button 
-            type="button" 
-            className="btn-close" 
-            onClick={() => setError('')}
-          ></button>
-        </div>
-      )}
+          {/* Alertas */}
+          {error && (
+            <Alert variant="danger" dismissible onClose={() => setError('')}>
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              {error}
+            </Alert>
+          )}
 
-      {success && (
-        <div className="alert alert-success alert-dismissible fade show" role="alert">
-          <i className="fas fa-check-circle me-2"></i>
-          {success}
-          <button 
-            type="button" 
-            className="btn-close" 
-            onClick={() => setSuccess('')}
-          ></button>
-        </div>
-      )}
+          {success && (
+            <Alert variant="success" dismissible onClose={() => setSuccess('')}>
+              <i className="fas fa-check-circle me-2"></i>
+              {success}
+            </Alert>
+          )}
 
-      {/* Formulário */}
-      <div className="row justify-content-center">
-        <div className="col-lg-8">
-          <div className="card card-soono">
-            <div className="card-body">
-              <form onSubmit={handleSubmit}>
-                <div className="row">
-                  {/* Nome */}
-                  <div className="col-md-8 mb-3">
-                    <label htmlFor="nome" className="form-label">
-                      Nome do Insumo *
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="nome"
-                      name="nome"
-                      value={formData.nome}
-                      onChange={handleInputChange}
-                      placeholder="Ex: Linha de algodão azul"
-                      required
-                    />
-                  </div>
+          {/* Formulário */}
+          <Row className="justify-content-center">
+            <Col lg={8}>
+              <Card className="card-soono">
+                <Card.Body>
+                  <Form onSubmit={handleSubmit}>
+                    <Row>
+                      {/* Nome */}
+                      <Col md={8} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="nome">Nome do Insumo *</Form.Label>
+                          <Form.Control
+                            type="text"
+                            id="nome"
+                            name="nome"
+                            value={formData.nome}
+                            onChange={handleInputChange}
+                            placeholder="Ex: Linha de algodão azul"
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
 
-                  {/* Variação */}
-                  <div className="col-md-4 mb-3">
-                    <label htmlFor="variacao" className="form-label">
-                      Variação
-                    </label>
-                    <select
-                      className="form-select"
-                      id="variacao"
-                      name="variacao"
-                      value={formData.variacao}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Selecione...</option>
-                      {variacoes.map(variacao => (
-                        <option key={variacao} value={variacao}>
-                          {variacao}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                      {/* Variação */}
+                      <Col md={4} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="variacao">Variação</Form.Label>
+                          <Form.Select
+                            id="variacao"
+                            name="variacao"
+                            value={formData.variacao}
+                            onChange={handleInputChange}
+                          >
+                            <option value="">Selecione...</option>
+                            {variacoes.map(variacao => (
+                              <option key={variacao} value={variacao}>
+                                {variacao}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                    </Row>
 
-                <div className="row">
-                  {/* Categoria */}
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="categoria" className="form-label">
-                      Categoria *
-                    </label>
-                    <select
-                      className="form-select"
-                      id="categoria"
-                      name="categoria"
-                      value={formData.categoria}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">Selecione uma categoria</option>
-                      {categorias.map(categoria => (
-                        <option key={categoria} value={categoria}>
-                          {categoria}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    <Row>
+                      {/* Categoria */}
+                      <Col md={6} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="categoria">Categoria *</Form.Label>
+                          <Form.Select
+                            id="categoria"
+                            name="categoria"
+                            value={formData.categoria}
+                            onChange={handleInputChange}
+                            required
+                          >
+                            <option value="">Selecione uma categoria</option>
+                            {categorias.map(categoria => (
+                              <option key={categoria} value={categoria}>
+                                {categoria}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
 
-                  {/* Unidade de Medida */}
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="unidade" className="form-label">
-                      Unidade de Medida *
-                    </label>
-                    <select
-                      className="form-select"
-                      id="unidade"
-                      name="unidade"
-                      value={formData.unidade}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      {unidades.map(unidade => (
-                        <option key={unidade} value={unidade}>
-                          {unidade}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                      {/* Unidade de Medida */}
+                      <Col md={6} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="unidade">Unidade de Medida *</Form.Label>
+                          <Form.Select
+                            id="unidade"
+                            name="unidade"
+                            value={formData.unidade}
+                            onChange={handleInputChange}
+                            required
+                          >
+                            {unidades.map(unidade => (
+                              <option key={unidade} value={unidade}>
+                                {unidade}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                    </Row>
 
-                <div className="row">
-                  {/* Custo Unitário */}
-                  <div className="col-md-4 mb-3">
-                    <label htmlFor="custoUnitario" className="form-label">
-                      Custo Unitário *
-                    </label>
-                    <div className="input-group">
-                      <span className="input-group-text">R$</span>
-                      <input
-                        type="number"
-                        className="form-control"
-                        id="custoUnitario"
-                        name="custoUnitario"
-                        value={formData.custoUnitario}
+                    <Row>
+                      {/* Custo Unitário */}
+                      <Col md={4} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="custoUnitario">Custo Unitário *</Form.Label>
+                          <InputGroup>
+                            <InputGroup.Text>R$</InputGroup.Text>
+                            <Form.Control
+                              type="number"
+                              id="custoUnitario"
+                              name="custoUnitario"
+                              value={formData.custoUnitario}
+                              onChange={handleInputChange}
+                              placeholder="0,00"
+                              step="0.01"
+                              min="0"
+                              required
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      {/* Quantidade em Estoque */}
+                      <Col md={4} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="estoqueAtual">Qtd. em Estoque *</Form.Label>
+                          <Form.Control
+                            type="number"
+                            id="estoqueAtual"
+                            name="estoqueAtual"
+                            value={formData.estoqueAtual}
+                            onChange={handleInputChange}
+                            placeholder="0"
+                            step="0.01"
+                            min="0"
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+
+                      {/* Estoque Mínimo */}
+                      <Col md={4} className="mb-3">
+                        <Form.Group>
+                          <Form.Label htmlFor="estoqueMinimo">Estoque Mínimo *</Form.Label>
+                          <Form.Control
+                            type="number"
+                            id="estoqueMinimo"
+                            name="estoqueMinimo"
+                            value={formData.estoqueMinimo}
+                            onChange={handleInputChange}
+                            placeholder="5"
+                            step="0.01"
+                            min="0"
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+
+                    {/* Fornecedor */}
+                    <Form.Group className="mb-3">
+                      <Form.Label htmlFor="fornecedor">Fornecedor</Form.Label>
+                      <Form.Control
+                        type="text"
+                        id="fornecedor"
+                        name="fornecedor"
+                        value={formData.fornecedor}
                         onChange={handleInputChange}
-                        placeholder="0,00"
-                        step="0.01"
-                        min="0"
-                        required
+                        placeholder="Nome do fornecedor ou loja"
                       />
-                    </div>
-                  </div>
+                    </Form.Group>
 
-                  {/* Quantidade em Estoque */}
-                  <div className="col-md-4 mb-3">
-                    <label htmlFor="estoqueAtual" className="form-label">
-                      Qtd. em Estoque *
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      id="estoqueAtual"
-                      name="estoqueAtual"
-                      value={formData.estoqueAtual}
-                      onChange={handleInputChange}
-                      placeholder="0"
-                      step="0.01"
-                      min="0"
-                      required
-                    />
-                  </div>
+                    {/* Observações */}
+                    <Form.Group className="mb-4">
+                      <Form.Label htmlFor="observacoes">Observações</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        id="observacoes"
+                        name="observacoes"
+                        value={formData.observacoes}
+                        onChange={handleInputChange}
+                        rows="3"
+                        placeholder="Informações adicionais sobre o insumo..."
+                      />
+                    </Form.Group>
 
-                  {/* Estoque Mínimo */}
-                  <div className="col-md-4 mb-3">
-                    <label htmlFor="estoqueMinimo" className="form-label">
-                      Estoque Mínimo *
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      id="estoqueMinimo"
-                      name="estoqueMinimo"
-                      value={formData.estoqueMinimo}
-                      onChange={handleInputChange}
-                      placeholder="5"
-                      step="0.01"
-                      min="0"
-                      required
-                    />
-                  </div>
-                </div>
+                    {/* Preview de Valores */}
+                    {formData.custoUnitario && formData.estoqueAtual && (
+                      <Alert variant="info">
+                        <h6 className="mb-2">
+                          <i className="fas fa-calculator me-2"></i>
+                          Resumo dos Valores:
+                        </h6>
+                        <Row>
+                          <Col md={6}>
+                            <strong>Valor Total em Estoque:</strong><br />
+                            {formatarMoeda(
+                              parseFloat(formData.custoUnitario || 0) * 
+                              parseFloat(formData.estoqueAtual || 0)
+                            )}
+                          </Col>
+                          <Col md={6}>
+                            <strong>Custo por {formData.unidade}:</strong><br />
+                            {formatarMoeda(parseFloat(formData.custoUnitario || 0))}
+                          </Col>
+                        </Row>
+                      </Alert>
+                    )}
 
-                {/* Fornecedor */}
-                <div className="mb-3">
-                  <label htmlFor="fornecedor" className="form-label">
-                    Fornecedor
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="fornecedor"
-                    name="fornecedor"
-                    value={formData.fornecedor}
-                    onChange={handleInputChange}
-                    placeholder="Nome do fornecedor ou loja"
-                  />
-                </div>
+                    {/* Botões */}
+                    <Row>
+                      <Col>
+                        <div className="d-flex justify-content-between">
+                          <Button
+                            variant="outline-secondary"
+                            onClick={() => navigate('/insumos')}
+                            disabled={loading}
+                          >
+                            <i className="fas fa-arrow-left me-2"></i>
+                            Cancelar
+                          </Button>
 
-                {/* Observações */}
-                <div className="mb-4">
-                  <label htmlFor="observacoes" className="form-label">
-                    Observações
-                  </label>
-                  <textarea
-                    className="form-control"
-                    id="observacoes"
-                    name="observacoes"
-                    value={formData.observacoes}
-                    onChange={handleInputChange}
-                    rows="3"
-                    placeholder="Informações adicionais sobre o insumo..."
-                  ></textarea>
-                </div>
-
-                {/* Preview de Valores */}
-                {formData.custoUnitario && formData.estoqueAtual && (
-                  <div className="alert alert-info">
-                    <h6 className="mb-2">
-                      <i className="fas fa-calculator me-2"></i>
-                      Resumo dos Valores:
-                    </h6>
-                    <div className="row">
-                      <div className="col-md-6">
-                        <strong>Valor Total em Estoque:</strong><br />
-                        {formatarMoeda(
-                          parseFloat(formData.custoUnitario || 0) * 
-                          parseFloat(formData.estoqueAtual || 0)
-                        )}
-                      </div>
-                      <div className="col-md-6">
-                        <strong>Custo por {formData.unidade}:</strong><br />
-                        {formatarMoeda(parseFloat(formData.custoUnitario || 0))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Botões */}
-                <div className="row">
-                  <div className="col-12">
-                    <div className="d-flex justify-content-between">
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => navigate('/insumos')}
-                        disabled={loading}
-                      >
-                        <i className="fas fa-arrow-left me-2"></i>
-                        Cancelar
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="btn btn-soono-primary"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Salvando...
-                          </>
-                        ) : (
-                          <>
-                            <i className={`fas ${isEdit ? 'fa-save' : 'fa-plus'} me-2`}></i>
-                            {isEdit ? 'Atualizar Insumo' : 'Cadastrar Insumo'}
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                          <Button
+                            type="submit"
+                            variant="primary"
+                            className="btn-soono-primary"
+                            disabled={loading}
+                          >
+                            {loading ? (
+                              <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                                Salvando...
+                              </>
+                            ) : (
+                              <>
+                                <i className={`fas ${isEdit ? 'fa-save' : 'fa-plus'} me-2`}></i>
+                                {isEdit ? 'Atualizar Insumo' : 'Cadastrar Insumo'}
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Form>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Col>
+      </Row>
+    </Container>
   );
 };
 

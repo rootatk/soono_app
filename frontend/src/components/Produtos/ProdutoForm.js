@@ -203,8 +203,8 @@ const ProdutoForm = () => {
           </nav>
 
           <Card className="card-soono">
-            <Card.Header className="bg-soono-primary text-white">
-              <h4 className="mb-0">
+            <Card.Header>
+              <h4 className="mb-0 text-soono-brown">
                 {isEditing ? 'Editar Produto' : 'Novo Produto'}
               </h4>
             </Card.Header>
