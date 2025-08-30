@@ -272,7 +272,7 @@ const ProdutoForm = () => {
                           <option value="">Selecionar insumo...</option>
                           {insumosDisponiveis.map(insumo => (
                             <option key={insumo.id} value={insumo.id}>
-                              {insumo.nome} - R$ {insumo.custoUnitario.toFixed(2)}
+                              {insumo.nome} - R$ {insumo.custoUnitario?.toFixed(2) || '0.00'}
                             </option>
                           ))}
                         </Form.Select>
@@ -314,7 +314,7 @@ const ProdutoForm = () => {
                               <tr key={insumo.id}>
                                 <td>{insumo.nome}</td>
                                 <td>{insumo.quantidade}</td>
-                                <td>R$ {insumo.custoUnitario.toFixed(2)}</td>
+                                <td>R$ {insumo.custoUnitario?.toFixed(2) || '0.00'}</td>
                                 <td>R$ {insumo.custoTotal.toFixed(2)}</td>
                                 <td>
                                   <Button

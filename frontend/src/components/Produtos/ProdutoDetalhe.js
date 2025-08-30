@@ -24,7 +24,7 @@ const ProdutoDetalhe = () => {
   const carregarProduto = async () => {
     try {
       setLoading(true);
-      const data = await produtosService.obterProduto(id);
+      const data = await produtosService.buscarPorId(id);
       setProduto(data);
     } catch (err) {
       setError('Erro ao carregar produto: ' + err.message);
@@ -63,7 +63,7 @@ const ProdutoDetalhe = () => {
     return { bg: 'success', text: 'Margem Excelente' };
   };
 
-  const custoInsumos = produto?.insumos?.reduce((total, insumo) => 
+  const custoInsumos = produto?.insumosCompletos?.reduce((total, insumo) => 
     total + (insumo.quantidade * insumo.custoUnitario), 0) || 0;
   
   const custoMaoDeObra = (produto?.maoDeObraHoras || 0) * (produto?.maoDeObraCustoHora || 0);
@@ -105,9 +105,22 @@ const ProdutoDetalhe = () => {
           <nav aria-label="breadcrumb">
             <ol className="breadcrumb">
               <li className="breadcrumb-item">
-                <Button variant="link" onClick={() => navigate('/produtos')} className="p-0">
+                <span
+                  className="text-decoration-underline"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate('/')}
+                >
+                  Dashboard
+                </span>
+              </li>
+              <li className="breadcrumb-item">
+                <span
+                  className="text-decoration-underline"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate('/produtos')}
+                >
                   Produtos
-                </Button>
+                </span>
               </li>
               <li className="breadcrumb-item active">
                 {produto.nome}
@@ -122,9 +135,9 @@ const ProdutoDetalhe = () => {
             {/* Informações Principais */}
             <Col lg={8}>
               <Card className="card-soono mb-4">
-                <Card.Header className="bg-soono-primary text-white">
+                <Card.Header className="bg-soono-primary">
                   <div className="d-flex justify-content-between align-items-center">
-                    <h4 className="mb-0">{produto.nome}</h4>
+                    <h4 className="mb-0 text-soono-brown">{produto.nome}</h4>
                     <Badge bg={statusMargem.bg} className="fs-6">
                       {statusMargem.text}
                     </Badge>
@@ -203,7 +216,7 @@ const ProdutoDetalhe = () => {
               </Card>
 
               {/* Insumos Detalhados */}
-              {produto.insumos && produto.insumos.length > 0 && (
+              {produto.insumosCompletos && produto.insumosCompletos.length > 0 && (
                 <Card className="card-soono mb-4">
                   <Card.Header>
                     <h5 className="mb-0">Insumos Utilizados</h5>
@@ -220,7 +233,7 @@ const ProdutoDetalhe = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {produto.insumos.map((insumo, index) => (
+                          {produto.insumosCompletos.map((insumo, index) => (
                             <tr key={index}>
                               <td>
                                 <strong>{insumo.nome}</strong>

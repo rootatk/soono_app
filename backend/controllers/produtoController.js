@@ -111,16 +111,19 @@ const buscarProdutoPorId = async (req, res) => {
         where: { id: idsInsumos }
       });
 
-      dadosCompletos.insumosCompletos = produto.insumos.map(insumoUtilizado => {
+      const insumosMapeados = produto.insumos.map(insumoUtilizado => {
         const insumoCompleto = insumosCompletos.find(i => i.id === insumoUtilizado.id);
         return {
-          ...insumoUtilizado,
-          nome: insumoCompleto?.nome || 'Insumo não encontrado',
-          custoUnitario: insumoCompleto?.custoUnitario || 0,
-          unidade: insumoCompleto?.unidade || 'unidade',
+          id: insumoCompleto.id,
+          nome: insumoCompleto.nome,
+          custoUnitario: insumoCompleto.custoUnitario,
+          unidade: insumoCompleto.unidade,
+          quantidade: insumoUtilizado.quantidade,
           custoTotal: (insumoUtilizado.quantidade || 0) * (insumoCompleto?.custoUnitario || 0)
         };
       });
+      dadosCompletos.insumos = insumosMapeados;
+      delete dadosCompletos.insumosCompletos; // Remove the old property
     }
 
     res.json({
