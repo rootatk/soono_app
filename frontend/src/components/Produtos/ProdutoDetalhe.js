@@ -64,7 +64,7 @@ const ProdutoDetalhe = () => {
   };
 
   const custoInsumos = produto?.insumosCompletos?.reduce((total, insumo) => 
-    total + (insumo.quantidade * insumo.custoUnitario), 0) || 0;
+    total + (insumo.custoTotal || 0), 0) || 0;
   
   const custoMaoDeObra = (produto?.maoDeObraHoras || 0) * (produto?.maoDeObraCustoHora || 0);
 
@@ -232,7 +232,7 @@ const ProdutoDetalhe = () => {
                           <tr>
                             <th>Insumo</th>
                             <th className="text-center">Quantidade</th>
-                            <th className="text-end">Valor Unit.</th>
+                            <th className="text-center">Unidade</th>
                             <th className="text-end">Total</th>
                           </tr>
                         </thead>
@@ -248,10 +248,10 @@ const ProdutoDetalhe = () => {
                                 )}
                               </td>
                               <td className="text-center">{insumo.quantidade}</td>
-                              <td className="text-end">{formatarMoeda(insumo.custoUnitario)}</td>
+                              <td className="text-center">{insumo.unidade}</td>
                               <td className="text-end">
                                 <strong>
-                                  {formatarMoeda(insumo.quantidade * insumo.custoUnitario)}
+                                  {formatarMoeda(insumo.custoTotal)}
                                 </strong>
                               </td>
                             </tr>

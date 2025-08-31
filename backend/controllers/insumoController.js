@@ -128,6 +128,9 @@ const criarInsumo = async (req, res) => {
       estoqueAtual = 0,
       estoqueMinimo = 1,
       variacao,
+      fornecedor,
+      observacoes,
+      conversoes,
       ativo = true
     } = req.body;
 
@@ -169,6 +172,9 @@ const criarInsumo = async (req, res) => {
       estoqueAtual: parseFloat(estoqueAtual),
       estoqueMinimo: parseFloat(estoqueMinimo),
       variacao: variacao ? variacao.toUpperCase() : null,
+      fornecedor,
+      observacoes,
+      conversoes,
       ativo
     });
 

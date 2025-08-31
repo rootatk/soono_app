@@ -30,10 +30,12 @@ const Insumo = sequelize.define('Insumo', {
   unidade: {
     type: DataTypes.STRING,
     allowNull: false,
-    defaultValue: 'unidade',
-    validate: {
-      isIn: [['unidade', 'metro', 'grama', 'quilograma', 'litro', 'mililitro', 'centimetro']]
-    }
+    defaultValue: 'unidade'
+  },
+  conversoes: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    comment: 'Fatores de conversão para outras unidades. Ex: { "gramas": 500, "metros": 100 }'
   },
   estoqueAtual: {
     type: DataTypes.DECIMAL(10, 2),

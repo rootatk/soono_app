@@ -23,7 +23,8 @@ const InsumoForm = () => {
     unidade: 'unidade',
     variacao: '',
     fornecedor: '',
-    observacoes: ''
+    observacoes: '',
+    conversoes: []
   });
 
   const categorias = [
@@ -75,7 +76,8 @@ const InsumoForm = () => {
           unidade: insumo.unidade || 'unidade',
           variacao: insumo.variacao || '',
           fornecedor: insumo.fornecedor || '',
-          observacoes: insumo.observacoes || ''
+          observacoes: insumo.observacoes || '',
+          conversoes: insumo.conversoes ? Object.entries(insumo.conversoes).map(([unidade, fator]) => ({unidade, fator})) : []
         });
       }
     } catch (err) {
@@ -96,6 +98,25 @@ const InsumoForm = () => {
     // Limpar mensagens ao digitar
     if (error) setError('');
     if (success) setSuccess('');
+  };
+
+  const handleConversaoChange = (index, field, value) => {
+    const novasConversoes = [...formData.conversoes];
+    novasConversoes[index][field] = value;
+    setFormData(prev => ({ ...prev, conversoes: novasConversoes }));
+  };
+
+  const adicionarConversao = () => {
+    setFormData(prev => ({
+      ...prev,
+      conversoes: [...prev.conversoes, { unidade: '', fator: '' }]
+    }));
+  };
+
+  const removerConversao = (index) => {
+    const novasConversoes = [...formData.conversoes];
+    novasConversoes.splice(index, 1);
+    setFormData(prev => ({ ...prev, conversoes: novasConversoes }));
   };
 
   const validarFormulario = () => {
@@ -148,6 +169,12 @@ const InsumoForm = () => {
         variacao: formData.variacao || null,
         fornecedor: formData.fornecedor,
         observacoes: formData.observacoes,
+        conversoes: formData.conversoes.reduce((obj, item) => {
+          if (item.unidade && item.fator) {
+            obj[item.unidade] = parseFloat(item.fator);
+          }
+          return obj;
+        }, {})
       };
 
       let response;
@@ -415,6 +442,48 @@ const InsumoForm = () => {
                         placeholder="Informações adicionais sobre o insumo..."
                       />
                     </Form.Group>
+
+                    {/* Fatores de Conversão */}
+                    <Card className="mb-4">
+                      <Card.Header>
+                        <h5 className="mb-0">Fatores de Conversão</h5>
+                      </Card.Header>
+                      <Card.Body>
+                        <p className="text-muted small">
+                          Defina aqui a equivalência da unidade principal ({formData.unidade}) para outras unidades.
+                          Ex: Se 1 {formData.unidade} do seu insumo equivale a 500 gramas, adicione "grama" com fator "500".
+                        </p>
+                        {formData.conversoes.map((conversao, index) => (
+                          <Row key={index} className="mb-2 align-items-center">
+                            <Col md={5}>
+                              <Form.Control
+                                type="text"
+                                placeholder="Nome da unidade (ex: grama)"
+                                value={conversao.unidade}
+                                onChange={(e) => handleConversaoChange(index, 'unidade', e.target.value)}
+                              />
+                            </Col>
+                            <Col md={1} className="text-center">=</Col>
+                            <Col md={4}>
+                              <Form.Control
+                                type="number"
+                                placeholder="Fator"
+                                value={conversao.fator}
+                                onChange={(e) => handleConversaoChange(index, 'fator', e.target.value)}
+                              />
+                            </Col>
+                            <Col md={2}>
+                              <Button variant="outline-danger" size="sm" onClick={() => removerConversao(index)}>
+                                Remover
+                              </Button>
+                            </Col>
+                          </Row>
+                        ))}
+                        <Button variant="outline-primary" size="sm" onClick={adicionarConversao}>
+                          Adicionar Conversão
+                        </Button>
+                      </Card.Body>
+                    </Card>
 
                     {/* Preview de Valores */}
                     {formData.custoUnitario && formData.estoqueAtual && (

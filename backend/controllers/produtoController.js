@@ -113,13 +113,29 @@ const buscarProdutoPorId = async (req, res) => {
 
       const insumosMapeados = produto.insumos.map(insumoUtilizado => {
         const insumoCompleto = insumosCompletos.find(i => i.id === insumoUtilizado.id);
+        
+        let custoTotalInsumo = 0;
+        const unidadeUtilizada = insumoUtilizado.unidade || insumoCompleto.unidade;
+        const quantidade = parseFloat(insumoUtilizado.quantidade) || 0;
+        const custoUnitario = parseFloat(insumoCompleto.custoUnitario) || 0;
+
+        if (unidadeUtilizada === insumoCompleto.unidade) {
+          custoTotalInsumo = quantidade * custoUnitario;
+        } else if (insumoCompleto.conversoes && insumoCompleto.conversoes[unidadeUtilizada]) {
+          const fatorConversao = parseFloat(insumoCompleto.conversoes[unidadeUtilizada]);
+          if (fatorConversao > 0) {
+            custoTotalInsumo = (quantidade / fatorConversao) * custoUnitario;
+          }
+        }
+
         return {
           id: insumoCompleto.id,
           nome: insumoCompleto.nome,
-          custoUnitario: insumoCompleto.custoUnitario,
-          unidade: insumoCompleto.unidade,
-          quantidade: insumoUtilizado.quantidade,
-          custoTotal: (insumoUtilizado.quantidade || 0) * (insumoCompleto?.custoUnitario || 0)
+          custoUnitario: custoUnitario,
+          unidade: unidadeUtilizada,
+          quantidade: quantidade,
+          custoTotal: custoTotalInsumo,
+          variacao: insumoCompleto.variacao
         };
       });
       dadosCompletos.insumosCompletos = insumosMapeados;
@@ -200,13 +216,17 @@ const criarProduto = async (req, res) => {
         return {
           id: insumo.id,
           quantidade: parseFloat(insumoUtilizado.quantidade) || 0,
-          custoUnitario: parseFloat(insumo.custoUnitario)
+          custoUnitario: parseFloat(insumo.custoUnitario),
+          unidadePrincipal: insumo.unidade,
+          unidadeUtilizada: insumoUtilizado.unidade || insumo.unidade,
+          conversoes: insumo.conversoes
         };
       });
 
-      insumosUtilizados = insumosValidados.map(item => ({
+      insumosUtilizados = insumos.map(item => ({
         id: item.id,
-        quantidade: item.quantidade
+        quantidade: item.quantidade,
+        unidade: item.unidade
       }));
     }
 
@@ -329,13 +349,17 @@ const atualizarProduto = async (req, res) => {
           return {
             id: insumo.id,
             quantidade: parseFloat(insumoUtilizado.quantidade) || 0,
-            custoUnitario: parseFloat(insumo.custoUnitario)
+            custoUnitario: parseFloat(insumo.custoUnitario),
+            unidadePrincipal: insumo.unidade,
+            unidadeUtilizada: insumoUtilizado.unidade || insumo.unidade,
+            conversoes: insumo.conversoes
           };
         });
 
-        insumosUtilizados = insumosValidados.map(item => ({
+        insumosUtilizados = insumos.map(item => ({
           id: item.id,
-          quantidade: item.quantidade
+          quantidade: item.quantidade,
+          unidade: item.unidade
         }));
 
         dadosLimpos.insumos = insumosUtilizados;

@@ -5,7 +5,7 @@
 
 /**
  * Calcula o custo total dos insumos utilizados em um produto
- * @param {Array} insumosUtilizados - Array com {id, quantidade, custoUnitario}
+ * @param {Array} insumosUtilizados - Array com {id, quantidade, custoUnitario, unidade, conversoes}
  * @returns {Number} - Custo total dos insumos
  */
 const calcularCustoInsumos = (insumosUtilizados) => {
@@ -16,7 +16,23 @@ const calcularCustoInsumos = (insumosUtilizados) => {
   return insumosUtilizados.reduce((total, insumo) => {
     const quantidade = parseFloat(insumo.quantidade) || 0;
     const custoUnitario = parseFloat(insumo.custoUnitario) || 0;
-    return total + (quantidade * custoUnitario);
+    const unidadePrincipal = insumo.unidadePrincipal;
+    const unidadeUtilizada = insumo.unidadeUtilizada;
+    const conversoes = insumo.conversoes;
+
+    if (unidadeUtilizada === unidadePrincipal) {
+      return total + (quantidade * custoUnitario);
+    }
+
+    if (conversoes && conversoes[unidadeUtilizada]) {
+      const fatorConversao = parseFloat(conversoes[unidadeUtilizada]);
+      if (fatorConversao > 0) {
+        return total + (quantidade / fatorConversao * custoUnitario);
+      }
+    }
+
+    // Fallback se a conversão não for encontrada ou for inválida
+    return total;
   }, 0);
 };
 

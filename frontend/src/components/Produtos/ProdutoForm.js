@@ -30,6 +30,7 @@ const ProdutoForm = () => {
   const [insumosDisponiveis, setInsumosDisponiveis] = useState([]);
   const [insumoSelecionado, setInsumoSelecionado] = useState('');
   const [quantidadeInsumo, setQuantidadeInsumo] = useState('');
+  const [unidadeInsumo, setUnidadeInsumo] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -87,8 +88,8 @@ const ProdutoForm = () => {
   };
 
   const adicionarInsumo = () => {
-    if (!insumoSelecionado || !quantidadeInsumo) {
-      setError('Selecione um insumo e informe a quantidade');
+    if (!insumoSelecionado || !quantidadeInsumo || !unidadeInsumo) {
+      setError('Selecione um insumo, informe a quantidade e a unidade');
       return;
     }
 
@@ -102,12 +103,23 @@ const ProdutoForm = () => {
       return;
     }
 
+    let custoTotalInsumo = 0;
+    if (unidadeInsumo === insumo.unidade) {
+      custoTotalInsumo = quantidade * insumo.custoUnitario;
+    } else if (insumo.conversoes && insumo.conversoes[unidadeInsumo]) {
+      const fatorConversao = parseFloat(insumo.conversoes[unidadeInsumo]);
+      if (fatorConversao > 0) {
+        custoTotalInsumo = (quantidade / fatorConversao) * insumo.custoUnitario;
+      }
+    }
+
     const novoInsumo = {
       id: insumo.id,
       nome: insumo.nome,
       quantidade: quantidade,
+      unidade: unidadeInsumo,
       custoUnitario: insumo.custoUnitario,
-      custoTotal: quantidade * insumo.custoUnitario
+      custoTotal: custoTotalInsumo
     };
 
     setProduto(prev => ({
@@ -117,6 +129,7 @@ const ProdutoForm = () => {
 
     setInsumoSelecionado('');
     setQuantidadeInsumo('');
+    setUnidadeInsumo('');
     setError('');
   };
 
@@ -287,32 +300,62 @@ const ProdutoForm = () => {
                     <h5 className="mb-0">Insumos Utilizados</h5>
                   </Card.Header>
                   <Card.Body>
-                    <Row className="mb-3">
-                      <Col md={6}>
+                    <Row className="mb-3 align-items-end">
+                      <Col md={5}>
+                        <Form.Label>Insumo</Form.Label>
                         <Form.Select
                           value={insumoSelecionado}
-                          onChange={(e) => setInsumoSelecionado(e.target.value)}
+                          onChange={(e) => {
+                            setInsumoSelecionado(e.target.value);
+                            const insumo = insumosDisponiveis.find(i => i.id === parseInt(e.target.value));
+                            if (insumo) {
+                              setUnidadeInsumo(insumo.unidade);
+                            } else {
+                              setUnidadeInsumo('');
+                            }
+                          }}
                         >
                           <option value="">Selecionar insumo...</option>
                           {insumosDisponiveis.map(insumo => (
                             <option key={insumo.id} value={insumo.id}>
-                              {insumo.nome} - R$ {insumo.custoUnitario?.toFixed(2) || '0.00'}
+                              {insumo.nome} - {insumo.custoUnitario?.toFixed(2) || '0.00'} / {insumo.unidade}
                             </option>
                           ))}
                         </Form.Select>
                       </Col>
-                      <Col md={4}>
+                      <Col md={3}>
+                        <Form.Label>Quantidade</Form.Label>
                         <Form.Control
                           type="number"
                           step="0.01"
-                          placeholder="Quantidade"
+                          placeholder="Ex: 1.5"
                           value={quantidadeInsumo}
                           onChange={(e) => setQuantidadeInsumo(e.target.value)}
+                          disabled={!insumoSelecionado}
                         />
                       </Col>
                       <Col md={2}>
-                        <Button 
-                          variant="outline-primary" 
+                        <Form.Label>Unidade</Form.Label>
+                        <Form.Select
+                          value={unidadeInsumo}
+                          onChange={(e) => setUnidadeInsumo(e.target.value)}
+                          disabled={!insumoSelecionado}
+                        >
+                          {insumoSelecionado &&
+                            (() => {
+                              const insumo = insumosDisponiveis.find(i => i.id === parseInt(insumoSelecionado));
+                              if (!insumo) return null;
+                              const unidades = [insumo.unidade];
+                              if (insumo.conversoes) {
+                                unidades.push(...Object.keys(insumo.conversoes));
+                              }
+                              return unidades.map(u => <option key={u} value={u}>{u}</option>);
+                            })()}
+                        </Form.Select>
+                      </Col>
+                      <Col md={2}>
+                        <Button
+                          variant="outline-primary"
                           onClick={adicionarInsumo}
                           disabled={!insumoSelecionado || !quantidadeInsumo}
                         >
@@ -328,7 +371,7 @@ const ProdutoForm = () => {
                             <tr>
                               <th>Insumo</th>
                               <th>Quantidade</th>
-                              <th>Valor Unit.</th>
+                              <th>Unidade</th>
                               <th>Total</th>
                               <th></th>
                             </tr>
@@ -338,7 +381,7 @@ const ProdutoForm = () => {
                               <tr key={insumo.id}>
                                 <td>{insumo.nome}</td>
                                 <td>{insumo.quantidade}</td>
-                                <td>R$ {insumo.custoUnitario?.toFixed(2) || '0.00'}</td>
+                                <td>{insumo.unidade}</td>
                                 <td>R$ {insumo.custoTotal.toFixed(2)}</td>
                                 <td>
                                   <Button

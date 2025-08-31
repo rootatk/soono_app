@@ -24,7 +24,7 @@ const Produto = sequelize.define('Produto', {
     allowNull: true,
     defaultValue: 'Geral'
   },
-  // JSON com os insumos utilizados: [{ id: 1, quantidade: 2 }, { id: 2, quantidade: 1 }]
+  // JSON com os insumos utilizados: [{ id: 1, quantidade: 2, unidade: 'gramas' }]
   insumos: {
     type: DataTypes.JSON,
     allowNull: false,
