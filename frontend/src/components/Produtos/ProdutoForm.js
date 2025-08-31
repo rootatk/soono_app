@@ -16,7 +16,15 @@ const ProdutoForm = () => {
     insumos: [],
     maoDeObraHoras: 0.5, // valor padrão
     maoDeObraCustoHora: 6.9, // valor padrão
-    margemLucro: 30 // valor padrão
+    margemLucro: 30, // valor padrão
+    custosAdicionais: {
+      sacoPlastico: 0.1,
+      caixaSacola: 0.54,
+      tag: 0.07,
+      adesivoLogo: 0.25,
+      brinde: 1,
+      outros: 0
+    }
   });
 
   const [insumosDisponiveis, setInsumosDisponiveis] = useState([]);
@@ -27,8 +35,8 @@ const ProdutoForm = () => {
   const [success, setSuccess] = useState('');
 
   const categorias = [
-    'Colares', 'Pulseiras', 'Brincos', 'Anéis', 
-    'Conjuntos', 'Personalizados', 'Outros'
+    'Pulseiras', 'Chaveiros', 'Bolsas', 
+    'Outros'
   ];
 
   useEffect(() => {
@@ -43,6 +51,10 @@ const ProdutoForm = () => {
         // Se está editando, carregar dados do produto
         if (isEditing) {
           const produtoData = await produtosService.buscarPorId(id);
+          if (produtoData.insumosCompletos) {
+            produtoData.insumos = produtoData.insumosCompletos;
+            delete produtoData.insumosCompletos;
+          }
           setProduto(produtoData);
         }
       } catch (err) {
@@ -60,6 +72,17 @@ const ProdutoForm = () => {
     setProduto(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleCustosAdicionaisChange = (e) => {
+    const { name, value } = e.target;
+    setProduto(prev => ({
+      ...prev,
+      custosAdicionais: {
+        ...prev.custosAdicionais,
+        [name]: parseFloat(value) || 0
+      }
     }));
   };
 
@@ -106,10 +129,11 @@ const ProdutoForm = () => {
 
   const calcularCustoTotal = () => {
     const custoInsumos = produto.insumos.reduce((total, insumo) => 
-      total + insumo.custoTotal, 0
+      total + (insumo.custoTotal || 0), 0
     );
     const custoMaoDeObra = produto.maoDeObraHoras * produto.maoDeObraCustoHora;
-    return custoInsumos + custoMaoDeObra;
+    const custoAdicionalTotal = Object.values(produto.custosAdicionais || {}).reduce((total, custo) => total + custo, 0);
+    return custoInsumos + custoMaoDeObra + custoAdicionalTotal;
   };
 
   const calcularPrecoVenda = () => {
@@ -373,6 +397,91 @@ const ProdutoForm = () => {
                     </Form.Group>
                   </Col>
                 </Row>
+
+                {/* Seção de Custos Adicionais */}
+                <Card className="mb-4">
+                  <Card.Header>
+                    <h5 className="mb-0">Custos Adicionais</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <Row>
+                      <Col md={4}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Saco Plástico (R$)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            name="sacoPlastico"
+                            value={produto.custosAdicionais?.sacoPlastico || 0}
+                            onChange={handleCustosAdicionaisChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Caixa/Sacola (R$)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            name="caixaSacola"
+                            value={produto.custosAdicionais?.caixaSacola || 0}
+                            onChange={handleCustosAdicionaisChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Tag (R$)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            name="tag"
+                            value={produto.custosAdicionais?.tag || 0}
+                            onChange={handleCustosAdicionaisChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Row>
+                      <Col md={4}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Adesivo da Logo (R$)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            name="adesivoLogo"
+                            value={produto.custosAdicionais?.adesivoLogo || 0}
+                            onChange={handleCustosAdicionaisChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Brinde (R$)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            name="brinde"
+                            value={produto.custosAdicionais?.brinde || 0}
+                            onChange={handleCustosAdicionaisChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Outros Custos (R$)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            name="outros"
+                            value={produto.custosAdicionais?.outros || 0}
+                            onChange={handleCustosAdicionaisChange}
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                  </Card.Body>
+                </Card>
 
                 <Row className="mb-4">
                   <Col md={6}>

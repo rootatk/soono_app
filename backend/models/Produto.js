@@ -75,6 +75,18 @@ const Produto = sequelize.define('Produto', {
     allowNull: false,
     defaultValue: 0
   },
+  custosAdicionais: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {
+      sacoPlastico: 0,
+      caixaSacola: 0,
+      tag: 0,
+      adesivoLogo: 0,
+      brinde: 0,
+      outros: 0
+    }
+  },
   ativo: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

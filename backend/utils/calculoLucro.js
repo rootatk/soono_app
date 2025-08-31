@@ -76,7 +76,7 @@ const calcularMargemReal = (precoVenda, custoTotal) => {
 
 /**
  * Calcula todos os valores de um produto de uma vez
- * @param {Object} dadosProduto - {insumosUtilizados, maoDeObraHoras, custoPorHora, margemLucro}
+ * @param {Object} dadosProduto - {insumosUtilizados, maoDeObraHoras, custoPorHora, margemLucro, custosAdicionais}
  * @returns {Object} - Objeto com todos os cálculos
  */
 const calcularCustosProduto = (dadosProduto) => {
@@ -84,12 +84,18 @@ const calcularCustosProduto = (dadosProduto) => {
     insumosUtilizados = [],
     maoDeObraHoras = 0,
     custoPorHora = 15,
-    margemLucro = 30
+    margemLucro = 30,
+    custosAdicionais = {}
   } = dadosProduto;
 
   const custoInsumos = calcularCustoInsumos(insumosUtilizados);
   const custoMaoDeObra = calcularCustoMaoDeObra(maoDeObraHoras, custoPorHora);
-  const custoTotal = custoInsumos + custoMaoDeObra;
+  
+  const custoAdicionalTotal = Object.values(custosAdicionais || {}).reduce(
+    (total, custo) => total + (parseFloat(custo) || 0), 0
+  );
+
+  const custoTotal = custoInsumos + custoMaoDeObra + custoAdicionalTotal;
   const precoVenda = calcularPrecoVenda(custoTotal, margemLucro);
   const lucroPorUnidade = calcularLucroPorUnidade(precoVenda, custoTotal);
   const margemReal = calcularMargemReal(precoVenda, custoTotal);
@@ -97,6 +103,7 @@ const calcularCustosProduto = (dadosProduto) => {
   return {
     custoInsumos: roundToTwo(custoInsumos),
     custoMaoDeObra: roundToTwo(custoMaoDeObra),
+    custoAdicionalTotal: roundToTwo(custoAdicionalTotal),
     custoTotal: roundToTwo(custoTotal),
     precoVenda: roundToTwo(precoVenda),
     lucroPorUnidade: roundToTwo(lucroPorUnidade),

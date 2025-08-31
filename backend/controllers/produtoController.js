@@ -122,8 +122,7 @@ const buscarProdutoPorId = async (req, res) => {
           custoTotal: (insumoUtilizado.quantidade || 0) * (insumoCompleto?.custoUnitario || 0)
         };
       });
-      dadosCompletos.insumos = insumosMapeados;
-      delete dadosCompletos.insumosCompletos; // Remove the old property
+      dadosCompletos.insumosCompletos = insumosMapeados;
     }
 
     res.json({
@@ -151,9 +150,10 @@ const criarProduto = async (req, res) => {
       descricao,
       categoria = 'Geral',
       insumos = [],
-      maoDeObraHoras = 0,
-      maoDeObraCustoHora = 15,
+      maoDeObraHoras = 0.5,
+      maoDeObraCustoHora = 6.9,
       margemLucro = 30,
+      custosAdicionais = {},
       ativo = true
     } = req.body;
 
@@ -215,7 +215,8 @@ const criarProduto = async (req, res) => {
       insumosUtilizados: insumosValidados,
       maoDeObraHoras: parseFloat(maoDeObraHoras),
       custoPorHora: parseFloat(maoDeObraCustoHora),
-      margemLucro: parseFloat(margemLucro)
+      margemLucro: parseFloat(margemLucro),
+      custosAdicionais: custosAdicionais
     };
 
     const calculos = calcularCustosProduto(dadosCalculo);
@@ -228,6 +229,7 @@ const criarProduto = async (req, res) => {
       maoDeObraHoras: parseFloat(maoDeObraHoras),
       maoDeObraCustoHora: parseFloat(maoDeObraCustoHora),
       margemLucro: parseFloat(margemLucro),
+      custosAdicionais: custosAdicionais,
       custoInsumos: calculos.custoInsumos,
       custoMaoDeObra: calculos.custoMaoDeObra,
       custoTotal: calculos.custoTotal,
@@ -301,6 +303,7 @@ const atualizarProduto = async (req, res) => {
     if (dadosLimpos.nome) dadosLimpos.nome = dadosLimpos.nome.trim();
     if (dadosLimpos.categoria) dadosLimpos.categoria = dadosLimpos.categoria.trim();
     if (dadosLimpos.descricao) dadosLimpos.descricao = dadosLimpos.descricao.trim();
+    if (dadosLimpos.custosAdicionais) dadosLimpos.custosAdicionais = dadosLimpos.custosAdicionais;
 
     // Se alterou insumos, validar novamente
     if (dadosAtualizacao.insumos) {
@@ -342,7 +345,8 @@ const atualizarProduto = async (req, res) => {
           insumosUtilizados: insumosValidados,
           maoDeObraHoras: parseFloat(dadosLimpos.maoDeObraHoras || produto.maoDeObraHoras),
           custoPorHora: parseFloat(dadosLimpos.maoDeObraCustoHora || produto.maoDeObraCustoHora),
-          margemLucro: parseFloat(dadosLimpos.margemLucro || produto.margemLucro)
+          margemLucro: parseFloat(dadosLimpos.margemLucro || produto.margemLucro),
+          custosAdicionais: dadosLimpos.custosAdicionais || produto.custosAdicionais
         };
 
         const calculos = calcularCustosProduto(dadosCalculo);
@@ -358,7 +362,8 @@ const atualizarProduto = async (req, res) => {
     if (!dadosAtualizacao.insumos && (
       dadosAtualizacao.maoDeObraHoras !== undefined ||
       dadosAtualizacao.maoDeObraCustoHora !== undefined ||
-      dadosAtualizacao.margemLucro !== undefined
+      dadosAtualizacao.margemLucro !== undefined ||
+      dadosAtualizacao.custosAdicionais !== undefined
     )) {
       // Buscar insumos atuais do produto
       let insumosValidados = [];
@@ -383,7 +388,8 @@ const atualizarProduto = async (req, res) => {
         insumosUtilizados: insumosValidados,
         maoDeObraHoras: parseFloat(dadosLimpos.maoDeObraHoras || produto.maoDeObraHoras),
         custoPorHora: parseFloat(dadosLimpos.maoDeObraCustoHora || produto.maoDeObraCustoHora),
-        margemLucro: parseFloat(dadosLimpos.margemLucro || produto.margemLucro)
+        margemLucro: parseFloat(dadosLimpos.margemLucro || produto.margemLucro),
+        custosAdicionais: dadosLimpos.custosAdicionais || produto.custosAdicionais
       };
 
       const calculos = calcularCustosProduto(dadosCalculo);

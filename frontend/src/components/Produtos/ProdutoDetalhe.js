@@ -35,7 +35,7 @@ const ProdutoDetalhe = () => {
 
   const handleExcluir = async () => {
     try {
-      await produtosService.excluirProduto(id);
+      await produtosService.excluir(id);
       setSuccess('Produto excluído com sucesso!');
       setTimeout(() => {
         navigate('/produtos');
@@ -67,6 +67,10 @@ const ProdutoDetalhe = () => {
     total + (insumo.quantidade * insumo.custoUnitario), 0) || 0;
   
   const custoMaoDeObra = (produto?.maoDeObraHoras || 0) * (produto?.maoDeObraCustoHora || 0);
+
+  const custoAdicionalTotal = produto?.custosAdicionais 
+    ? Object.values(produto.custosAdicionais).reduce((total, custo) => total + (parseFloat(custo) || 0), 0)
+    : 0;
 
   if (loading) {
     return (
@@ -310,6 +314,48 @@ const ProdutoDetalhe = () => {
                       <span>Mão de obra:</span>
                       <span>{formatarMoeda(custoMaoDeObra)}</span>
                     </ListGroup.Item>
+                    {produto.custosAdicionais && custoAdicionalTotal > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0">
+                        <span>Custos Adicionais:</span>
+                        <span>{formatarMoeda(custoAdicionalTotal)}</span>
+                      </ListGroup.Item>
+                    )}
+                    {produto.custosAdicionais?.sacoPlastico > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0 ps-4">
+                        <small>Saco Plástico:</small>
+                        <small>{formatarMoeda(produto.custosAdicionais.sacoPlastico)}</small>
+                      </ListGroup.Item>
+                    )}
+                    {produto.custosAdicionais?.caixaSacola > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0 ps-4">
+                        <small>Caixa/Sacola:</small>
+                        <small>{formatarMoeda(produto.custosAdicionais.caixaSacola)}</small>
+                      </ListGroup.Item>
+                    )}
+                    {produto.custosAdicionais?.tag > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0 ps-4">
+                        <small>Tag:</small>
+                        <small>{formatarMoeda(produto.custosAdicionais.tag)}</small>
+                      </ListGroup.Item>
+                    )}
+                    {produto.custosAdicionais?.adesivoLogo > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0 ps-4">
+                        <small>Adesivo da Logo:</small>
+                        <small>{formatarMoeda(produto.custosAdicionais.adesivoLogo)}</small>
+                      </ListGroup.Item>
+                    )}
+                    {produto.custosAdicionais?.brinde > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0 ps-4">
+                        <small>Brinde:</small>
+                        <small>{formatarMoeda(produto.custosAdicionais.brinde)}</small>
+                      </ListGroup.Item>
+                    )}
+                    {produto.custosAdicionais?.outros > 0 && (
+                      <ListGroup.Item className="d-flex justify-content-between px-0 ps-4">
+                        <small>Outros Custos:</small>
+                        <small>{formatarMoeda(produto.custosAdicionais.outros)}</small>
+                      </ListGroup.Item>
+                    )}
                     <ListGroup.Item className="d-flex justify-content-between px-0 border-top">
                       <strong>Total:</strong>
                       <strong className="text-primary">
@@ -328,7 +374,7 @@ const ProdutoDetalhe = () => {
                 <Card.Body>
                   <div className="d-grid gap-2">
                     <Button
-                      variant="success"
+                      variant="warning"
                       onClick={() => navigate(`/produtos/${id}/editar`)}
                     >
                       Editar Produto

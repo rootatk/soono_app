@@ -26,8 +26,8 @@ const ProdutoList = () => {
   const [produtoParaExcluir, setProdutoParaExcluir] = useState(null);
   
   const categorias = [
-    'Colares', 'Pulseiras', 'Brincos', 'Anéis', 
-    'Conjuntos', 'Personalizados', 'Outros'
+    'Pulseiras', 'Chaveiros', 'Bolsas', 
+    'Outros'
   ];
 
   useEffect(() => {
@@ -99,7 +99,7 @@ const ProdutoList = () => {
 
   const confirmarExclusao = async () => {
     try {
-      await produtosService.excluirProduto(produtoParaExcluir.id);
+      await produtosService.excluir(produtoParaExcluir.id);
       setSuccess(`Produto "${produtoParaExcluir.nome}" excluído com sucesso!`);
       carregarProdutos();
     } catch (err) {
@@ -330,7 +330,7 @@ const ProdutoList = () => {
                             </Button>
                             <div className="d-flex gap-2">
                               <Button
-                                variant="outline-success"
+                                variant="outline-warning"
                                 size="sm"
                                 className="flex-fill"
                                 onClick={() => navigate(`/produtos/${produto.id}/editar`)}
