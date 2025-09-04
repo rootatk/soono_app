@@ -20,6 +20,7 @@ const ProdutoList = () => {
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [ordenacao, setOrdenacao] = useState('nome');
+  const [viewMode, setViewMode] = useState('grid');
   
   // Modal de confirmação
   const [showModal, setShowModal] = useState(false);
@@ -170,14 +171,32 @@ const ProdutoList = () => {
                 )}
               </p>
             </div>
-            <Button 
-              variant="primary" 
-              className="btn-soono-primary"
-              onClick={() => navigate('/produtos/novo')}
-            >
-              <i className="fas fa-plus me-2"></i>
-              Novo Produto
-            </Button>
+            <div className="d-flex align-items-center">
+              <div className="btn-group me-3" role="group">
+                <button 
+                  type="button" 
+                  className={`btn btn-outline-secondary ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <i className="fas fa-th-large"></i>
+                </button>
+                <button 
+                  type="button" 
+                  className={`btn btn-outline-secondary ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <i className="fas fa-list"></i>
+                </button>
+              </div>
+              <Button 
+                variant="primary" 
+                className="btn-soono-primary"
+                onClick={() => navigate('/produtos/novo')}
+              >
+                <i className="fas fa-plus me-2"></i>
+                Novo Produto
+              </Button>
+            </div>
           </div>
 
           {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
@@ -256,104 +275,114 @@ const ProdutoList = () => {
               </Card.Body>
             </Card>
           ) : (
-            <Row>
-              {produtosFiltrados.map(produto => {
-                const margem = calcularMargemLucro(produto);
-                return (
-                  <Col key={produto.id} md={6} lg={4} className="mb-4">
-                    <Card className="h-100 card-soono">
-                      <Card.Header className="bg-light">
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div>
-                            <h6 className="mb-1 fw-bold">{produto.nome}</h6>
+            <>
+              {viewMode === 'grid' && (
+                <Row>
+                  {produtosFiltrados.map(produto => {
+                    const margem = calcularMargemLucro(produto);
+                    return (
+                      <Col key={produto.id} md={6} lg={4} className="mb-4">
+                        <Card className="h-100 card-soono">
+                          {produto.imagemUrl ? (
+                            <Card.Img 
+                              variant="top" 
+                              src={`http://localhost:3001${produto.imagemUrl}`} 
+                              style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
+                              onClick={() => navigate(`/produtos/${produto.id}`)}
+                            />
+                          ) : (
+                            <div 
+                              className="d-flex align-items-center justify-content-center bg-light"
+                              style={{ height: '200px', cursor: 'pointer' }}
+                              onClick={() => navigate(`/produtos/${produto.id}`)}
+                            >
+                              <i className="fas fa-box-open fa-3x text-muted"></i>
+                            </div>
+                          )}
+                          <Card.Body className="d-flex flex-column">
+                            <h5 className="card-title fw-bold">{produto.nome}</h5>
                             {produto.categoria && (
-                              <Badge bg="secondary" className="small">
+                              <Badge bg="secondary" className="small mb-2">
                                 {produto.categoria}
                               </Badge>
                             )}
-                          </div>
-                          <Badge 
-                            bg={getVariantePreco(margem)} 
-                            className="ms-2"
-                          >
-                            {margem.toFixed(1)}% lucro
-                          </Badge>
-                        </div>
-                      </Card.Header>
-
-                      <Card.Body className="d-flex flex-column">
-                        {produto.descricao && (
-                          <p className="text-muted small mb-3" style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                          }}>
-                            {produto.descricao}
-                          </p>
-                        )}
-
-                        <div className="mb-3">
-                          <div className="d-flex justify-content-between small text-muted">
-                            <span>Custo Total:</span>
-                            <span>{formatarMoeda(produto.custoTotal || 0)}</span>
-                          </div>
-                          <div className="d-flex justify-content-between">
-                            <strong>Preço de Venda:</strong>
-                            <strong className="text-success">
-                              {formatarMoeda(produto.precoVenda || 0)}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="mb-3 small text-muted">
-                          <div className="d-flex justify-content-between">
-                            <span>Insumos:</span>
-                            <span>{produto.insumos?.length || 0} itens</span>
-                          </div>
-                          {produto.maoDeObraHoras > 0 && (
                             <div className="d-flex justify-content-between">
-                              <span>Mão de Obra:</span>
-                              <span>{produto.maoDeObraHoras}h</span>
+                              <span>Custo:</span>
+                              <span>{formatarMoeda(produto.custoTotal || 0)}</span>
                             </div>
-                          )}
-                        </div>
+                            <div className="d-flex justify-content-between">
+                              <strong>Preço:</strong>
+                              <strong className="text-success">{formatarMoeda(produto.precoVenda || 0)}</strong>
+                            </div>
+                            <div className="mt-auto pt-3">
+                              <Button
+                                variant="outline-primary"
+                                className="w-100"
+                                onClick={() => navigate(`/produtos/${produto.id}`)}
+                              >
+                                Ver Detalhes
+                              </Button>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    );
+                  })}
+                </Row>
+              )}
 
-                        <div className="mt-auto">
-                          <div className="d-grid gap-2">
-                            <Button
-                              variant="outline-primary"
-                              size="sm"
-                              onClick={() => navigate(`/produtos/${produto.id}`)}
-                            >
-                              Ver Detalhes
-                            </Button>
-                            <div className="d-flex gap-2">
-                              <Button
-                                variant="outline-warning"
-                                size="sm"
-                                className="flex-fill"
-                                onClick={() => navigate(`/produtos/${produto.id}/editar`)}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                className="flex-fill"
-                                onClick={() => handleExcluir(produto)}
-                              >
-                                Excluir
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                );
-              })}
-            </Row>
+              {viewMode === 'list' && (
+                <div className="card card-soono">
+                  <div className="table-responsive">
+                    <table className="table table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '5%' }}></th>
+                          <th>Produto</th>
+                          <th>Categoria</th>
+                          <th className="text-end">Custo</th>
+                          <th className="text-end">Preço</th>
+                          <th className="text-center">Margem</th>
+                          <th className="text-end">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {produtosFiltrados.map(produto => {
+                          const margem = calcularMargemLucro(produto);
+                          return (
+                            <tr key={produto.id}>
+                              <td>
+                                {produto.imagemUrl ? (
+                                  <img src={`http://localhost:3001${produto.imagemUrl}`} alt={produto.nome} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px' }} />
+                                ) : (
+                                  <div className="d-flex align-items-center justify-content-center bg-light" style={{ width: '40px', height: '40px', borderRadius: '8px' }}>
+                                    <i className="fas fa-box-open text-muted"></i>
+                                  </div>
+                                )}
+                              </td>
+                              <td><strong>{produto.nome}</strong></td>
+                              <td>{produto.categoria}</td>
+                              <td className="text-end">{formatarMoeda(produto.custoTotal)}</td>
+                              <td className="text-end text-success">{formatarMoeda(produto.precoVenda)}</td>
+                              <td className="text-center">
+                                <Badge bg={getVariantePreco(margem)}>{margem.toFixed(1)}%</Badge>
+                              </td>
+                              <td className="text-end">
+                                <div className="btn-group">
+                                  <Button variant="outline-primary" size="sm" onClick={() => navigate(`/produtos/${produto.id}`)} title="Ver detalhes"><i className="fas fa-eye"></i></Button>
+                                  <Button variant="outline-warning" size="sm" onClick={() => navigate(`/produtos/${produto.id}/editar`)} title="Editar"><i className="fas fa-edit"></i></Button>
+                                  <Button variant="outline-danger" size="sm" onClick={() => handleExcluir(produto)} title="Excluir"><i className="fas fa-trash"></i></Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Resumo */}

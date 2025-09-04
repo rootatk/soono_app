@@ -21,6 +21,7 @@ const InsumoList = () => {
   // Modal de confirmação para exclusão
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [insumoParaExcluir, setInsumoParaExcluir] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
 
   const categorias = [
     'Linhas e Fios',
@@ -45,36 +46,12 @@ const InsumoList = () => {
     try {
       setLoading(true);
       setError('');
-      
-      const response = await insumoService.listar();
-      
-      console.log('Resposta da API:', response); // Log para debug
-      
-      // Verificar diferentes formatos de resposta possíveis
-      let dadosInsumos = [];
-      
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          dadosInsumos = response.data;
-        } else if (response.data.insumos && Array.isArray(response.data.insumos)) {
-          dadosInsumos = response.data.insumos;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          dadosInsumos = response.data.data;
-        } else {
-          console.warn('Formato de resposta inesperado:', response.data);
-        }
-      } else if (Array.isArray(response)) {
-        dadosInsumos = response;
-      }
-      
+      const dadosInsumos = await insumoService.listar();
       setInsumos(dadosInsumos);
-      console.log('Insumos carregados:', dadosInsumos);
-      console.log('PRIMEIRO INSUMO DETALHADO:', dadosInsumos[0]);
-      
     } catch (err) {
       console.error('Erro ao carregar insumos:', err);
       setError('Erro ao carregar lista de insumos');
-      setInsumos([]); // Garantir que seja sempre um array
+      setInsumos([]);
     } finally {
       setLoading(false);
     }
@@ -209,14 +186,32 @@ const InsumoList = () => {
             )}
           </p>
         </div>
-        <Button 
-          variant="primary" 
-          className="btn-soono-primary"
-          onClick={() => navigate('/insumos/novo')}
-        >
-          <i className="fas fa-plus me-2"></i>
-          Novo Insumo
-        </Button>
+        <div className="d-flex align-items-center">
+          <div className="btn-group me-3" role="group">
+            <button 
+              type="button" 
+              className={`btn btn-outline-secondary ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+            >
+              <i className="fas fa-th-large"></i>
+            </button>
+            <button 
+              type="button" 
+              className={`btn btn-outline-secondary ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+            >
+              <i className="fas fa-list"></i>
+            </button>
+          </div>
+          <Button 
+            variant="primary" 
+            className="btn-soono-primary"
+            onClick={() => navigate('/insumos/novo')}
+          >
+            <i className="fas fa-plus me-2"></i>
+            Novo Insumo
+          </Button>
+        </div>
       </div>
 
       {/* Alertas */}
@@ -353,102 +348,152 @@ const InsumoList = () => {
           )}
         </div>
       ) : (
-        <Row>
-          {insumosFiltrados.map(insumo => {
-            const alerta = getAlertaEstoque(insumo);
-            const valorTotalEstoque = insumo.custoUnitario * insumo.estoqueAtual;
+        <>
+          {viewMode === 'grid' && (
+            <Row>
+              {insumosFiltrados.map(insumo => {
+                const alerta = getAlertaEstoque(insumo);
+                const valorTotalEstoque = insumo.custoUnitario * insumo.estoqueAtual;
 
-            return (
-              <Col key={insumo.id} md={6} lg={4} className="mb-4">
-                <div className="card card-soono h-100">
-                  <div className="card-body d-flex flex-column">
-                    {/* Cabeçalho do Card */}
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                      <div className="flex-grow-1">
-                        <h5 className="card-title mb-1">
-                          {insumo.nome}
-                          {insumo.variacao && (
-                            <span className="badge bg-secondary ms-2">
-                              {insumo.variacao}
-                            </span>
-                          )}
-                        </h5>
-                        <p className="text-muted small mb-0">{insumo.categoria}</p>
-                      </div>
-                      
-                      {/* Status do Estoque */}
-                      <span className={`badge bg-${alerta.classe}`}>
-                        <i className={`fas ${alerta.icone} me-1`}></i>
-                        {alerta.texto}
-                      </span>
-                    </div>
-
-                    {/* Informações */}
-                    <div className="mb-3 flex-grow-1">
-                      <Row className="g-2">
-                        <Col xs={6}>
-                          <small className="text-muted">Custo Unitário:</small>
-                          <div className="fw-bold">{formatarMoeda(insumo.custoUnitario)}</div>
-                        </Col>
-                        <Col xs={6}>
-                          <small className="text-muted">Em Estoque:</small>
-                          <div className="fw-bold">
-                            {insumo.estoqueAtual} {insumo.unidade}
-                          </div>
-                        </Col>
-                        <Col xs={6}>
-                          <small className="text-muted">Estoque Mín.:</small>
-                          <div>{insumo.estoqueMinimo} {insumo.unidade}</div>
-                        </Col>
-                        <Col xs={6}>
-                          <small className="text-muted">Valor Total:</small>
-                          <div className="fw-bold text-soono-gold">
-                            {formatarMoeda(valorTotalEstoque)}
-                          </div>
-                        </Col>
-                      </Row>
-
-                      {insumo.fornecedor && (
-                        <div className="mt-2">
-                          <small className="text-muted">Fornecedor:</small>
-                          <div className="small">{insumo.fornecedor}</div>
+                return (
+                  <Col key={insumo.id} md={6} lg={4} className="mb-4">
+                    <div className="card card-soono h-100">
+                      {insumo.imagemUrl ? (
+                        <img
+                          src={`http://localhost:3001${insumo.imagemUrl}`}
+                          alt={insumo.nome}
+                          className="card-img-top"
+                          style={{ height: '150px', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => navigate(`/insumos/${insumo.id}`)}
+                        />
+                      ) : (
+                        <div 
+                          className="card-img-top d-flex align-items-center justify-content-center bg-light"
+                          style={{ height: '150px', cursor: 'pointer' }}
+                          onClick={() => navigate(`/insumos/${insumo.id}`)}
+                        >
+                          <i className="fas fa-image fa-2x text-muted"></i>
                         </div>
                       )}
+                      <div className="card-body d-flex flex-column">
+                        <div className="d-flex justify-content-between align-items-start mb-3">
+                          <div className="flex-grow-1">
+                            <h5 className="card-title mb-1">
+                              {insumo.nome}
+                              {insumo.variacao && (
+                                <span className="badge bg-secondary ms-2">
+                                  {insumo.variacao}
+                                </span>
+                              )}
+                            </h5>
+                            <p className="text-muted small mb-0">{insumo.categoria}</p>
+                          </div>
+                          <span className={`badge bg-${alerta.classe}`}>
+                            <i className={`fas ${alerta.icone} me-1`}></i>
+                            {alerta.texto}
+                          </span>
+                        </div>
+                        <div className="mb-3 flex-grow-1">
+                          <Row className="g-2">
+                            <Col xs={6}>
+                              <small className="text-muted">Custo Unitário:</small>
+                              <div className="fw-bold">{formatarMoeda(insumo.custoUnitario)}</div>
+                            </Col>
+                            <Col xs={6}>
+                              <small className="text-muted">Em Estoque:</small>
+                              <div className="fw-bold">{insumo.estoqueAtual} {insumo.unidade}</div>
+                            </Col>
+                          </Row>
+                        </div>
+                        <div className="d-flex gap-2 mt-auto">
+                          <button
+                            className="btn btn-outline-primary btn-sm flex-fill"
+                            onClick={() => navigate(`/insumos/${insumo.id}`)}
+                            title="Ver detalhes"
+                          >
+                            <i className="fas fa-eye me-1"></i> Ver
+                          </button>
+                          <button
+                            className="btn btn-outline-warning btn-sm flex-fill"
+                            onClick={() => navigate(`/insumos/${insumo.id}/editar`)}
+                            title="Editar"
+                          >
+                            <i className="fas fa-edit me-1"></i> Editar
+                          </button>
+                          <button
+                            className="btn btn-outline-danger btn-sm flex-fill"
+                            onClick={() => confirmarExclusao(insumo)}
+                            title="Excluir"
+                          >
+                            <i className="fas fa-trash me-1"></i> Excluir
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  </Col>
+                );
+              })}
+            </Row>
+          )}
 
-                    {/* Botões de Ação */}
-                    <div className="d-flex gap-2 mt-auto">
-                      <button
-                        className="btn btn-outline-primary btn-sm flex-fill"
-                        onClick={() => navigate(`/insumos/${insumo.id}`)}
-                        title="Ver detalhes"
-                      >
-                        <i className="fas fa-eye me-1"></i>
-                        Ver
-                      </button>
-                      <button
-                        className="btn btn-outline-warning btn-sm flex-fill"
-                        onClick={() => navigate(`/insumos/${insumo.id}/editar`)}
-                        title="Editar"
-                      >
-                        <i className="fas fa-edit me-1"></i>
-                        Editar
-                      </button>
-                      <button
-                        className="btn btn-outline-danger btn-sm flex-fill"
-                        onClick={() => confirmarExclusao(insumo)}
-                        title="Excluir"
-                      >
-                        <i className="fas fa-trash me-1"></i>
-                        Excluir
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </Col>
-            );
-          })}
-        </Row>
+          {viewMode === 'list' && (
+            <div className="card card-soono">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '5%' }}></th>
+                      <th>Nome</th>
+                      <th>Categoria</th>
+                      <th className="text-end">Custo Unit.</th>
+                      <th className="text-center">Estoque</th>
+                      <th className="text-center">Status</th>
+                      <th className="text-end">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insumosFiltrados.map(insumo => {
+                      const alerta = getAlertaEstoque(insumo);
+                      return (
+                        <tr key={insumo.id}>
+                          <td>
+                            {insumo.imagemUrl ? (
+                              <img src={`http://localhost:3001${insumo.imagemUrl}`} alt={insumo.nome} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px' }} />
+                            ) : (
+                              <div className="d-flex align-items-center justify-content-center bg-light" style={{ width: '40px', height: '40px', borderRadius: '8px' }}>
+                                <i className="fas fa-image text-muted"></i>
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <strong>{insumo.nome}</strong>
+                            {insumo.variacao && <span className="badge bg-secondary ms-2">{insumo.variacao}</span>}
+                          </td>
+                          <td>{insumo.categoria}</td>
+                          <td className="text-end">{formatarMoeda(insumo.custoUnitario)}</td>
+                          <td className="text-center">{insumo.estoqueAtual} {insumo.unidade}</td>
+                          <td className="text-center">
+                            <span className={`badge bg-${alerta.classe}`}>
+                              <i className={`fas ${alerta.icone} me-1`}></i>
+                              {alerta.texto}
+                            </span>
+                          </td>
+                          <td className="text-end">
+                            <div className="btn-group">
+                              <button className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/insumos/${insumo.id}`)} title="Ver detalhes"><i className="fas fa-eye"></i></button>
+                              <button className="btn btn-outline-warning btn-sm" onClick={() => navigate(`/insumos/${insumo.id}/editar`)} title="Editar"><i className="fas fa-edit"></i></button>
+                              <button className="btn btn-outline-danger btn-sm" onClick={() => confirmarExclusao(insumo)} title="Excluir"><i className="fas fa-trash"></i></button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal de Confirmação de Exclusão */}

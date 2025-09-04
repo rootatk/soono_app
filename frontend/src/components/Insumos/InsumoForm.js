@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { insumoService } from '../../services/insumos';
+import { uploadService } from '../../services/upload';
 import { formatarMoeda } from '../../utils/formatarMoeda';
 
 const InsumoForm = () => {
@@ -13,6 +14,8 @@ const InsumoForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [imagemFile, setImagemFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -24,7 +27,8 @@ const InsumoForm = () => {
     variacao: '',
     fornecedor: '',
     observacoes: '',
-    conversoes: []
+    conversoes: [],
+    imagemUrl: ''
   });
 
   const categorias = [
@@ -65,7 +69,7 @@ const InsumoForm = () => {
       setError('');
       
       const insumo = await insumoService.buscarPorId(id);
-      
+
       if (insumo) {
         setFormData({
           nome: insumo.nome || '',
@@ -77,8 +81,10 @@ const InsumoForm = () => {
           variacao: insumo.variacao || '',
           fornecedor: insumo.fornecedor || '',
           observacoes: insumo.observacoes || '',
-          conversoes: insumo.conversoes ? Object.entries(insumo.conversoes).map(([unidade, fator]) => ({unidade, fator})) : []
+          conversoes: insumo.conversoes ? Object.entries(insumo.conversoes).map(([unidade, fator]) => ({unidade, fator})) : [],
+          imagemUrl: insumo.imagemUrl || ''
         });
+        setImagePreviewUrl(insumo.imagemUrl || '');
       }
     } catch (err) {
       console.error('Erro ao carregar insumo:', err);
@@ -119,6 +125,18 @@ const InsumoForm = () => {
     setFormData(prev => ({ ...prev, conversoes: novasConversoes }));
   };
 
+  const handleImagemChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImagemFile(e.target.files[0]);
+      // Preview da imagem
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreviewUrl(event.target.result);
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
   const validarFormulario = () => {
     if (!formData.nome.trim()) {
       setError('Nome é obrigatório');
@@ -149,58 +167,85 @@ const InsumoForm = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validarFormulario()) {
-      return;
-    }
+  e.preventDefault();
+  
+  if (!validarFormulario()) {
+    return;
+  }
 
-    try {
-      setLoading(true);
-      setError('');
+  try {
+    setLoading(true);
+    setError('');
 
-      const dadosParaEnvio = {
-        nome: formData.nome,
-        categoria: formData.categoria,
-        custoUnitario: parseFloat(formData.custoUnitario),
-        unidade: formData.unidade,
-        estoqueAtual: parseFloat(formData.estoqueAtual),
-        estoqueMinimo: parseFloat(formData.estoqueMinimo),
-        variacao: formData.variacao || null,
-        fornecedor: formData.fornecedor,
-        observacoes: formData.observacoes,
-        conversoes: formData.conversoes.reduce((obj, item) => {
-          if (item.unidade && item.fator) {
-            obj[item.unidade] = parseFloat(item.fator);
-          }
-          return obj;
-        }, {})
-      };
+    let imagemUrl = formData.imagemUrl; // URL atual do formulário
 
-      let response;
-      if (isEdit) {
-        response = await insumoService.atualizar(id, dadosParaEnvio);
-        setSuccess('Insumo atualizado com sucesso!');
-      } else {
-        response = await insumoService.criar(dadosParaEnvio);
-        setSuccess('Insumo cadastrado com sucesso!');
+    // Se uma nova imagem foi selecionada, faz o upload
+    if (imagemFile) {
+      try {
+        const uploadData = new FormData();
+        uploadData.append('imagem', imagemFile);
+        const response = await uploadService.uploadImagem(uploadData);
+                
+        // Tentar acessar a imagemUrl de diferentes formas
+        imagemUrl = response.data?.data?.imagemUrl || 
+                   response.data?.imagemUrl || 
+                   response.imagemUrl;
+                
+        if (!imagemUrl) {
+          throw new Error('Não foi possível obter a URL da imagem do upload');
+        }
+      } catch (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        throw new Error('Falha no upload da imagem.');
       }
-
-      // Redirecionar após sucesso
-      setTimeout(() => {
-        navigate('/insumos');
-      }, 1500);
-
-    } catch (err) {
-      console.error('Erro ao salvar insumo:', err);
-      setError(
-        err.response?.data?.message || 
-        `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} insumo`
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    const dadosParaEnvio = {
+      nome: formData.nome,
+      categoria: formData.categoria,
+      custoUnitario: parseFloat(formData.custoUnitario),
+      unidade: formData.unidade,
+      estoqueAtual: parseFloat(formData.estoqueAtual),
+      estoqueMinimo: parseFloat(formData.estoqueMinimo),
+      variacao: formData.variacao || null,
+      fornecedor: formData.fornecedor,
+      observacoes: formData.observacoes,
+      conversoes: formData.conversoes.reduce((obj, item) => {
+        if (item.unidade && item.fator) {
+          obj[item.unidade] = parseFloat(item.fator);
+        }
+        return obj;
+      }, {}),
+      imagemUrl: imagemUrl // Sempre incluir a imagemUrl
+    };
+
+    let response;
+    if (isEdit) {
+      response = await insumoService.atualizar(id, dadosParaEnvio);
+      setSuccess('Insumo atualizado com sucesso!');
+    } else {
+      response = await insumoService.criar(dadosParaEnvio);
+      setSuccess('Insumo cadastrado com sucesso!');
+    }
+
+    // Redirecionar após sucesso
+    setTimeout(() => {
+      navigate('/insumos');
+    }, 1500);
+
+  } catch (err) {
+    console.error('Erro ao salvar insumo:', err);
+    const errorMessage = 
+      err.response?.data?.error ||
+      err.response?.data?.message ||
+      err.message ||
+      `Erro ao ${isEdit ? 'atualizar' : 'cadastrar'} insumo`;
+    
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading && isEdit) {
     return (
@@ -441,6 +486,21 @@ const InsumoForm = () => {
                         rows="3"
                         placeholder="Informações adicionais sobre o insumo..."
                       />
+                    </Form.Group>
+
+                    {/* Imagem do Insumo */}
+                    <Form.Group className="mb-4">
+                      <Form.Label>Imagem do Insumo</Form.Label>
+                      <Form.Control type="file" onChange={handleImagemChange} accept="image/*" />
+                      {imagePreviewUrl && (
+                        <div className="mt-3 text-center">
+                          <img 
+                            src={imagePreviewUrl.startsWith('data:') || imagePreviewUrl.startsWith('blob:') ? imagePreviewUrl : `http://localhost:3001${imagePreviewUrl}`} 
+                            alt="Preview do Insumo" 
+                            style={{ maxHeight: '200px', borderRadius: '8px' }} 
+                          />
+                        </div>
+                      )}
                     </Form.Group>
 
                     {/* Fatores de Conversão */}

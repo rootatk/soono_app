@@ -131,6 +131,7 @@ const criarInsumo = async (req, res) => {
       fornecedor,
       observacoes,
       conversoes,
+      imagemUrl,
       ativo = true
     } = req.body;
 
@@ -175,6 +176,7 @@ const criarInsumo = async (req, res) => {
       fornecedor,
       observacoes,
       conversoes,
+      imagemUrl,
       ativo
     });
 
@@ -211,6 +213,9 @@ const atualizarInsumo = async (req, res) => {
   try {
     const { id } = req.params;
     const dadosAtualizacao = req.body;
+    console.log('ATUALIZAR INSUMO - dadosAtualizacao.imagemUrl:', dadosAtualizacao.imagemUrl);
+    console.log('DADOS RECEBIDOS NA API:', JSON.stringify(req.body, null, 2));
+    // console.log('ATUALIZAR INSUMO - insumo.imagemUrl (antes):', insumo.imagemUrl);
 
     const insumo = await Insumo.findByPk(id);
 
@@ -243,35 +248,26 @@ const atualizarInsumo = async (req, res) => {
       }
     }
 
-    // Processar dados antes de atualizar
-    const dadosLimpos = { ...dadosAtualizacao };
-    
-    if (dadosLimpos.nome) {
-      dadosLimpos.nome = dadosLimpos.nome.trim();
-    }
-    
-    if (dadosLimpos.categoria) {
-      dadosLimpos.categoria = dadosLimpos.categoria.trim();
+    // Atualização explícita de cada campo
+    insumo.nome = dadosAtualizacao.nome?.trim() || insumo.nome;
+    insumo.categoria = dadosAtualizacao.categoria?.trim() || insumo.categoria;
+    insumo.custoUnitario = parseFloat(dadosAtualizacao.custoUnitario) || insumo.custoUnitario;
+    insumo.unidade = dadosAtualizacao.unidade || insumo.unidade;
+    insumo.estoqueAtual = parseFloat(dadosAtualizacao.estoqueAtual) ?? insumo.estoqueAtual;
+    insumo.estoqueMinimo = parseFloat(dadosAtualizacao.estoqueMinimo) ?? insumo.estoqueMinimo;
+    insumo.variacao = dadosAtualizacao.variacao ? dadosAtualizacao.variacao.toUpperCase() : null;
+    insumo.fornecedor = dadosAtualizacao.fornecedor || insumo.fornecedor;
+    insumo.observacoes = dadosAtualizacao.observacoes || insumo.observacoes;
+    insumo.conversoes = dadosAtualizacao.conversoes || insumo.conversoes;
+    insumo.ativo = dadosAtualizacao.ativo ?? insumo.ativo;
+
+    // Tratamento especial e explícito para a imagemUrl
+    if (dadosAtualizacao.imagemUrl !== undefined) {
+      insumo.imagemUrl = dadosAtualizacao.imagemUrl === '' ? null : dadosAtualizacao.imagemUrl;
     }
 
-    if (dadosLimpos.variacao) {
-      dadosLimpos.variacao = dadosLimpos.variacao.toUpperCase();
-    }
-
-    if (dadosLimpos.custoUnitario) {
-      dadosLimpos.custoUnitario = parseFloat(dadosLimpos.custoUnitario);
-    }
-
-    if (dadosLimpos.estoqueAtual !== undefined) {
-      dadosLimpos.estoqueAtual = parseFloat(dadosLimpos.estoqueAtual);
-    }
-
-    if (dadosLimpos.estoqueMinimo !== undefined) {
-      dadosLimpos.estoqueMinimo = parseFloat(dadosLimpos.estoqueMinimo);
-    }
-
-    await insumo.update(dadosLimpos);
-    await insumo.reload();
+    await insumo.save();
+    console.log('ATUALIZAR INSUMO - insumo.imagemUrl (depois):', insumo.imagemUrl);
 
     res.json({
       success: true,

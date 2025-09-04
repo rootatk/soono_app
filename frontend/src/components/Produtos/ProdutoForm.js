@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, Badge } from 'react-bootstrap';
 import produtosService from '../../services/produtos';
 import { insumoService } from '../../services/insumos';
+import { uploadService } from '../../services/upload';
 
 const ProdutoForm = () => {
   const navigate = useNavigate();
@@ -24,7 +25,8 @@ const ProdutoForm = () => {
       adesivoLogo: 0.25,
       brinde: 1,
       outros: 0
-    }
+    },
+    imagemUrl: ''
   });
 
   const [insumosDisponiveis, setInsumosDisponiveis] = useState([]);
@@ -34,6 +36,7 @@ const ProdutoForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [imagemFile, setImagemFile] = useState(null);
 
   const categorias = [
     'Pulseiras', 'Chaveiros', 'Bolsas', 
@@ -85,6 +88,18 @@ const ProdutoForm = () => {
         [name]: parseFloat(value) || 0
       }
     }));
+  };
+
+  const handleImagemChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImagemFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProduto(prev => ({ ...prev, imagemUrl: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const adicionarInsumo = () => {
@@ -171,10 +186,26 @@ const ProdutoForm = () => {
       setLoading(true);
       setError('');
       
+      let finalImagemUrl = produto.imagemUrl;
+
+      if (imagemFile) {
+        const uploadData = new FormData();
+        uploadData.append('imagem', imagemFile);
+        try {
+          const response = await uploadService.uploadImagem(uploadData);
+          finalImagemUrl = response.data.imagemUrl;
+        } catch (uploadError) {
+          console.error('Falha no upload da imagem:', uploadError);
+          throw new Error('Falha no upload da imagem.');
+        }
+      }
+
       const dadosProduto = {
         ...produto,
+        imagemUrl: finalImagemUrl,
         custoTotal: calcularCustoTotal(),
-        precoVenda: calcularPrecoVenda()
+        precoVenda: calcularPrecoVenda(),
+        insumos: produto.insumos.map(i => ({ id: i.id, quantidade: i.quantidade, unidade: i.unidade }))
       };
 
       if (isEditing) {
@@ -187,10 +218,10 @@ const ProdutoForm = () => {
 
       setTimeout(() => {
         navigate('/produtos');
-      }, 2000);
+      }, 1500);
 
     } catch (err) {
-      setError('Erro ao salvar produto: ' + err.message);
+      setError('Erro ao salvar produto: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -292,6 +323,21 @@ const ProdutoForm = () => {
                     onChange={handleInputChange}
                     placeholder="Descrição detalhada do produto..."
                   />
+                </Form.Group>
+
+                {/* Adicionado campo de imagem */}
+                <Form.Group className="mb-4">
+                  <Form.Label>Imagem do Produto</Form.Label>
+                  <Form.Control type="file" onChange={handleImagemChange} accept="image/*" />
+                  {produto.imagemUrl && (
+                    <div className="mt-3 text-center">
+                      <img
+                        src={produto.imagemUrl.startsWith('data:') || produto.imagemUrl.startsWith('blob:') ? produto.imagemUrl : `http://localhost:3001${produto.imagemUrl}`}
+                        alt="Preview do Produto"
+                        style={{ maxHeight: '200px', borderRadius: '8px' }}
+                      />
+                    </div>
+                  )}
                 </Form.Group>
 
                 {/* Seção de Insumos */}

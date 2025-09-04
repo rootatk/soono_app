@@ -24,3 +24,6 @@ yarn-error.log*
 
 # ignorar banco local
 backend/database/soono.db
+
+# ignorar banco de imagens
+backend/uploads

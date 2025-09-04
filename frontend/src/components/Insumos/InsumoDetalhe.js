@@ -302,8 +302,27 @@ const InsumoDetalhe = () => {
           </div>
         </div>
 
-        {/* Card de Estoque */}
         <div className="col-lg-4">
+          {insumo.imagemUrl && (
+            <div className="card card-soono mb-4">
+              <div className="card-header">
+                <h5 className="mb-0">
+                  <i className="fas fa-image me-2"></i>
+                  Imagem
+                </h5>
+              </div>
+              <div className="card-body text-center">
+                <img
+                  src={`http://localhost:3001${insumo.imagemUrl}`}
+                  alt={`Imagem de ${insumo.nome}`}
+                  className="img-fluid rounded"
+                  style={{ maxHeight: '300px' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Card de Estoque */}
           <div className="card card-soono mb-4">
             <div className="card-header d-flex justify-content-between align-items-center">
               <h5 className="mb-0">

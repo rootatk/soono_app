@@ -170,6 +170,7 @@ const criarProduto = async (req, res) => {
       maoDeObraCustoHora = 6.9,
       margemLucro = 30,
       custosAdicionais = {},
+      imagemUrl,
       ativo = true
     } = req.body;
 
@@ -254,6 +255,7 @@ const criarProduto = async (req, res) => {
       custoMaoDeObra: calculos.custoMaoDeObra,
       custoTotal: calculos.custoTotal,
       precoVenda: calculos.precoVenda,
+      imagemUrl,
       ativo
     });
 
@@ -324,6 +326,7 @@ const atualizarProduto = async (req, res) => {
     if (dadosLimpos.categoria) dadosLimpos.categoria = dadosLimpos.categoria.trim();
     if (dadosLimpos.descricao) dadosLimpos.descricao = dadosLimpos.descricao.trim();
     if (dadosLimpos.custosAdicionais) dadosLimpos.custosAdicionais = dadosLimpos.custosAdicionais;
+    if (dadosLimpos.imagemUrl) dadosLimpos.imagemUrl = dadosLimpos.imagemUrl;
 
     // Se alterou insumos, validar novamente
     if (dadosAtualizacao.insumos) {

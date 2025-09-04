@@ -138,6 +138,11 @@ const ProdutoDetalhe = () => {
           <Row>
             {/* Informações Principais */}
             <Col lg={8}>
+              {produto.imagemUrl && (
+                <Card className="mb-4 shadow-sm">
+                  <Card.Img variant="top" src={`http://localhost:3001${produto.imagemUrl}`} style={{ maxHeight: '400px', objectFit: 'cover' }} />
+                </Card>
+              )}
               <Card className="card-soono mb-4">
                 <Card.Header className="bg-soono-primary">
                   <div className="d-flex justify-content-between align-items-center">

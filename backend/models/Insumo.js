@@ -74,6 +74,10 @@ const Insumo = sequelize.define('Insumo', {
   observacoes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  imagemUrl: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'insumos',

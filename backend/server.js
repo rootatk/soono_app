@@ -16,7 +16,11 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: '*', // Em produção, restrinja para o seu domínio
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: 'Content-Type,Authorization'
+}));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -50,6 +54,10 @@ app.use('/api/insumos', require('./routes/insumos'));
 app.use('/api/produtos', require('./routes/produtos'));
 app.use('/api/vendas', require('./routes/vendas'));
 app.use('/api/estatisticas', require('./routes/estatisticas'));
+app.use('/api/upload', require('./routes/upload'));
+
+// Servir arquivos estáticos da pasta uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rota para servir arquivos estáticos do React (produção)
 if (process.env.NODE_ENV === 'production') {
