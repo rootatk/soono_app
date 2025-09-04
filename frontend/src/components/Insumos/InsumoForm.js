@@ -153,12 +153,12 @@ const InsumoForm = () => {
       return false;
     }
 
-    if (!formData.estoqueAtual || parseFloat(formData.estoqueAtual) < 0) {
+    if (formData.estoqueAtual === '' || isNaN(parseFloat(formData.estoqueAtual)) || parseFloat(formData.estoqueAtual) < 0) {
       setError('Quantidade em estoque deve ser maior ou igual a zero');
       return false;
     }
 
-    if (!formData.estoqueMinimo || parseFloat(formData.estoqueMinimo) < 0) {
+    if (formData.estoqueMinimo === '' || isNaN(parseFloat(formData.estoqueMinimo)) || parseFloat(formData.estoqueMinimo) < 0) {
       setError('Estoque mínimo deve ser maior ou igual a zero');
       return false;
     }
@@ -208,16 +208,18 @@ const InsumoForm = () => {
       estoqueAtual: parseFloat(formData.estoqueAtual),
       estoqueMinimo: parseFloat(formData.estoqueMinimo),
       variacao: formData.variacao || null,
-      fornecedor: formData.fornecedor,
-      observacoes: formData.observacoes,
+      fornecedor: formData.fornecedor || '',
+      observacoes: formData.observacoes || '',
       conversoes: formData.conversoes.reduce((obj, item) => {
         if (item.unidade && item.fator) {
           obj[item.unidade] = parseFloat(item.fator);
         }
         return obj;
       }, {}),
-      imagemUrl: imagemUrl // Sempre incluir a imagemUrl
+      imagemUrl: imagemUrl || ''
     };
+
+    console.log('Dados que serão enviados para a API:', dadosParaEnvio);
 
     let response;
     if (isEdit) {
@@ -235,6 +237,10 @@ const InsumoForm = () => {
 
   } catch (err) {
     console.error('Erro ao salvar insumo:', err);
+    console.error('Resposta completa do erro:', err.response);
+    console.error('Status:', err.response?.status);
+    console.error('Dados do erro:', err.response?.data);
+    
     const errorMessage = 
       err.response?.data?.error ||
       err.response?.data?.message ||

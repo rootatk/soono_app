@@ -79,7 +79,7 @@ export const insumoService = {
         throw new Error('Custo unitário deve ser maior que zero');
       }
 
-      if (dadosInsumo.quantidadeEstoque < 0) {
+      if (dadosInsumo.estoqueAtual < 0) {
         throw new Error('Quantidade em estoque não pode ser negativa');
       }
 
