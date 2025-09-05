@@ -202,15 +202,17 @@ const InsumoList = () => {
               type="button" 
               className={`btn btn-outline-secondary ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => handleViewModeChange('grid')}
+              title="Vista em grade"
             >
-              <i className="fas fa-th-large"></i>
+              <i className="fas fa-border-all"></i>
             </button>
             <button 
               type="button" 
               className={`btn btn-outline-secondary ${viewMode === 'list' ? 'active' : ''}`}
               onClick={() => handleViewModeChange('list')}
+              title="Vista em lista"
             >
-              <i className="fas fa-list"></i>
+              <i className="fas fa-align-justify"></i>
             </button>
           </div>
           <Button 
