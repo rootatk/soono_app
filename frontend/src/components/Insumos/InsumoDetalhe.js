@@ -12,6 +12,7 @@ const InsumoDetalhe = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Modal de movimentação de estoque
   const [showMovimentacaoModal, setShowMovimentacaoModal] = useState(false);
@@ -311,13 +312,24 @@ const InsumoDetalhe = () => {
                   Imagem
                 </h5>
               </div>
-              <div className="card-body text-center">
-                <img
-                  src={`http://localhost:3001${insumo.imagemUrl}`}
-                  alt={`Imagem de ${insumo.nome}`}
-                  className="img-fluid rounded"
-                  style={{ maxHeight: '300px' }}
-                />
+              <div className="card-body text-center p-3">
+                <div className="image-detail-container" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', padding: '20px' }}>
+                  <img
+                    src={`http://localhost:3001${insumo.imagemUrl}`}
+                    alt={`Imagem de ${insumo.nome}`}
+                    className="img-fluid rounded shadow-sm"
+                    style={{ 
+                      maxHeight: '400px', 
+                      maxWidth: '100%',
+                      objectFit: 'contain',
+                      cursor: 'zoom-in',
+                      transition: 'transform 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                    onClick={() => setShowImageModal(true)}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -566,6 +578,28 @@ const InsumoDetalhe = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Visualização de Imagem */}
+      {showImageModal && insumo?.imagemUrl && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Imagem - {insumo.nome}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowImageModal(false)}></button>
+              </div>
+              <div className="modal-body text-center p-2">
+                <img
+                  src={`http://localhost:3001${insumo.imagemUrl}`}
+                  alt={`Imagem de ${insumo.nome}`}
+                  className="img-fluid rounded"
+                  style={{ maxHeight: '80vh', maxWidth: '100%' }}
+                />
+              </div>
             </div>
           </div>
         </div>

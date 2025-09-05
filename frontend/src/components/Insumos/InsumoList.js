@@ -21,7 +21,17 @@ const InsumoList = () => {
   // Modal de confirmação para exclusão
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [insumoParaExcluir, setInsumoParaExcluir] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
+  
+  // View mode persistente - mantém preferência até recarregar página
+  const [viewMode, setViewMode] = useState(() => {
+    return sessionStorage.getItem('insumos-view-mode') || 'grid';
+  });
+
+  // Função para alterar view mode e salvar preferência
+  const handleViewModeChange = (newMode) => {
+    setViewMode(newMode);
+    sessionStorage.setItem('insumos-view-mode', newMode);
+  };
 
   const categorias = [
     'Linhas e Fios',
@@ -191,14 +201,14 @@ const InsumoList = () => {
             <button 
               type="button" 
               className={`btn btn-outline-secondary ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')}
+              onClick={() => handleViewModeChange('grid')}
             >
               <i className="fas fa-th-large"></i>
             </button>
             <button 
               type="button" 
               className={`btn btn-outline-secondary ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('list')}
             >
               <i className="fas fa-list"></i>
             </button>
@@ -358,23 +368,34 @@ const InsumoList = () => {
                 return (
                   <Col key={insumo.id} md={6} lg={4} className="mb-4">
                     <div className="card card-soono h-100">
-                      {insumo.imagemUrl ? (
-                        <img
-                          src={`http://localhost:3001${insumo.imagemUrl}`}
-                          alt={insumo.nome}
-                          className="card-img-top"
-                          style={{ height: '150px', objectFit: 'cover', cursor: 'pointer' }}
-                          onClick={() => navigate(`/insumos/${insumo.id}`)}
-                        />
-                      ) : (
-                        <div 
-                          className="card-img-top d-flex align-items-center justify-content-center bg-light"
-                          style={{ height: '150px', cursor: 'pointer' }}
-                          onClick={() => navigate(`/insumos/${insumo.id}`)}
-                        >
-                          <i className="fas fa-image fa-2x text-muted"></i>
-                        </div>
-                      )}
+                      <div className="card-img-container position-relative" style={{ height: '180px', overflow: 'hidden' }}>
+                        {insumo.imagemUrl ? (
+                          <img
+                            src={`http://localhost:3001${insumo.imagemUrl}`}
+                            alt={insumo.nome}
+                            className="card-img-top"
+                            style={{ 
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              backgroundColor: '#f8f9fa',
+                              cursor: 'pointer',
+                              transition: 'transform 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                            onClick={() => navigate(`/insumos/${insumo.id}`)}
+                          />
+                        ) : (
+                          <div 
+                            className="d-flex align-items-center justify-content-center bg-light h-100"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => navigate(`/insumos/${insumo.id}`)}
+                          >
+                            <i className="fas fa-image fa-2x text-muted"></i>
+                          </div>
+                        )}
+                      </div>
                       <div className="card-body d-flex flex-column">
                         <div className="d-flex justify-content-between align-items-start mb-3">
                           <div className="flex-grow-1">
@@ -389,7 +410,6 @@ const InsumoList = () => {
                             <p className="text-muted small mb-0">{insumo.categoria}</p>
                           </div>
                           <span className={`badge bg-${alerta.classe}`}>
-                            <i className={`fas ${alerta.icone} me-1`}></i>
                             {alerta.texto}
                           </span>
                         </div>
@@ -457,13 +477,40 @@ const InsumoList = () => {
                       return (
                         <tr key={insumo.id}>
                           <td>
-                            {insumo.imagemUrl ? (
-                              <img src={`http://localhost:3001${insumo.imagemUrl}`} alt={insumo.nome} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px' }} />
-                            ) : (
-                              <div className="d-flex align-items-center justify-content-center bg-light" style={{ width: '40px', height: '40px', borderRadius: '8px' }}>
-                                <i className="fas fa-image text-muted"></i>
-                              </div>
-                            )}
+                            <div className="image-thumbnail-container" style={{ width: '50px', height: '50px', position: 'relative' }}>
+                              {insumo.imagemUrl ? (
+                                <img 
+                                  src={`http://localhost:3001${insumo.imagemUrl}`} 
+                                  alt={insumo.nome} 
+                                  style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    objectFit: 'contain', 
+                                    borderRadius: '8px',
+                                    backgroundColor: '#f8f9fa',
+                                    border: '1px solid #e9ecef',
+                                    cursor: 'pointer',
+                                    transition: 'transform 0.2s ease'
+                                  }}
+                                  title={`Ver imagem de ${insumo.nome}`}
+                                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                  onClick={() => navigate(`/insumos/${insumo.id}`)}
+                                />
+                              ) : (
+                                <div 
+                                  className="d-flex align-items-center justify-content-center bg-light" 
+                                  style={{ 
+                                    width: '100%', 
+                                    height: '100%', 
+                                    borderRadius: '8px',
+                                    border: '1px solid #e9ecef'
+                                  }}
+                                >
+                                  <i className="fas fa-image text-muted"></i>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td>
                             <strong>{insumo.nome}</strong>
@@ -474,7 +521,6 @@ const InsumoList = () => {
                           <td className="text-center">{insumo.estoqueAtual} {insumo.unidade}</td>
                           <td className="text-center">
                             <span className={`badge bg-${alerta.classe}`}>
-                              <i className={`fas ${alerta.icone} me-1`}></i>
                               {alerta.texto}
                             </span>
                           </td>

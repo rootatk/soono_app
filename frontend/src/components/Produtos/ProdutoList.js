@@ -20,7 +20,17 @@ const ProdutoList = () => {
   const [busca, setBusca] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [ordenacao, setOrdenacao] = useState('nome');
-  const [viewMode, setViewMode] = useState('grid');
+  
+  // View mode persistente - mantém preferência até recarregar página
+  const [viewMode, setViewMode] = useState(() => {
+    return sessionStorage.getItem('produtos-view-mode') || 'grid';
+  });
+
+  // Função para alterar view mode e salvar preferência
+  const handleViewModeChange = (newMode) => {
+    setViewMode(newMode);
+    sessionStorage.setItem('produtos-view-mode', newMode);
+  };
   
   // Modal de confirmação
   const [showModal, setShowModal] = useState(false);
@@ -176,14 +186,14 @@ const ProdutoList = () => {
                 <button 
                   type="button" 
                   className={`btn btn-outline-secondary ${viewMode === 'grid' ? 'active' : ''}`}
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => handleViewModeChange('grid')}
                 >
                   <i className="fas fa-th-large"></i>
                 </button>
                 <button 
                   type="button" 
                   className={`btn btn-outline-secondary ${viewMode === 'list' ? 'active' : ''}`}
-                  onClick={() => setViewMode('list')}
+                  onClick={() => handleViewModeChange('list')}
                 >
                   <i className="fas fa-list"></i>
                 </button>
@@ -283,22 +293,33 @@ const ProdutoList = () => {
                     return (
                       <Col key={produto.id} md={6} lg={4} className="mb-4">
                         <Card className="h-100 card-soono">
-                          {produto.imagemUrl ? (
-                            <Card.Img 
-                              variant="top" 
-                              src={`http://localhost:3001${produto.imagemUrl}`} 
-                              style={{ height: '200px', objectFit: 'cover', cursor: 'pointer' }}
-                              onClick={() => navigate(`/produtos/${produto.id}`)}
-                            />
-                          ) : (
-                            <div 
-                              className="d-flex align-items-center justify-content-center bg-light"
-                              style={{ height: '200px', cursor: 'pointer' }}
-                              onClick={() => navigate(`/produtos/${produto.id}`)}
-                            >
-                              <i className="fas fa-box-open fa-3x text-muted"></i>
-                            </div>
-                          )}
+                          <div className="card-img-container position-relative" style={{ height: '220px', overflow: 'hidden' }}>
+                            {produto.imagemUrl ? (
+                              <Card.Img 
+                                variant="top" 
+                                src={`http://localhost:3001${produto.imagemUrl}`} 
+                                style={{ 
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'contain',
+                                  backgroundColor: '#f8f9fa',
+                                  cursor: 'pointer',
+                                  transition: 'transform 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                onClick={() => navigate(`/produtos/${produto.id}`)}
+                              />
+                            ) : (
+                              <div 
+                                className="d-flex align-items-center justify-content-center bg-light h-100"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => navigate(`/produtos/${produto.id}`)}
+                              >
+                                <i className="fas fa-box-open fa-3x text-muted"></i>
+                              </div>
+                            )}
+                          </div>
                           <Card.Body className="d-flex flex-column">
                             <h5 className="card-title fw-bold">{produto.nome}</h5>
                             {produto.categoria && (
@@ -372,13 +393,40 @@ const ProdutoList = () => {
                           return (
                             <tr key={produto.id}>
                               <td>
-                                {produto.imagemUrl ? (
-                                  <img src={`http://localhost:3001${produto.imagemUrl}`} alt={produto.nome} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px' }} />
-                                ) : (
-                                  <div className="d-flex align-items-center justify-content-center bg-light" style={{ width: '40px', height: '40px', borderRadius: '8px' }}>
-                                    <i className="fas fa-box-open text-muted"></i>
-                                  </div>
-                                )}
+                                <div className="image-thumbnail-container" style={{ width: '50px', height: '50px', position: 'relative' }}>
+                                  {produto.imagemUrl ? (
+                                    <img 
+                                      src={`http://localhost:3001${produto.imagemUrl}`} 
+                                      alt={produto.nome} 
+                                      style={{ 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        objectFit: 'contain', 
+                                        borderRadius: '8px',
+                                        backgroundColor: '#f8f9fa',
+                                        border: '1px solid #e9ecef',
+                                        cursor: 'pointer',
+                                        transition: 'transform 0.2s ease'
+                                      }}
+                                      title={`Ver imagem de ${produto.nome}`}
+                                      onMouseEnter={(e) => e.target.style.transform = 'scale(1.1)'}
+                                      onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                      onClick={() => navigate(`/produtos/${produto.id}`)}
+                                    />
+                                  ) : (
+                                    <div 
+                                      className="d-flex align-items-center justify-content-center bg-light" 
+                                      style={{ 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        borderRadius: '8px',
+                                        border: '1px solid #e9ecef'
+                                      }}
+                                    >
+                                      <i className="fas fa-box-open text-muted"></i>
+                                    </div>
+                                  )}
+                                </div>
                               </td>
                               <td><strong>{produto.nome}</strong></td>
                               <td>{produto.categoria}</td>

@@ -16,6 +16,7 @@ const ProdutoDetalhe = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showModalExcluir, setShowModalExcluir] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   useEffect(() => {
     carregarProduto();
@@ -141,7 +142,24 @@ const ProdutoDetalhe = () => {
             <Col lg={8}>
               {produto.imagemUrl && (
                 <Card className="mb-4 shadow-sm">
-                  <Card.Img variant="top" src={`http://localhost:3001${produto.imagemUrl}`} style={{ maxHeight: '400px', objectFit: 'cover' }} />
+                  <div className="image-detail-container" style={{ backgroundColor: '#f8f9fa', padding: '20px', textAlign: 'center' }}>
+                    <Card.Img 
+                      variant="top" 
+                      src={`http://localhost:3001${produto.imagemUrl}`} 
+                      style={{ 
+                        maxHeight: '500px', 
+                        maxWidth: '100%',
+                        objectFit: 'contain',
+                        borderRadius: '8px',
+                        cursor: 'zoom-in',
+                        transition: 'transform 0.3s ease',
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                      }}
+                      onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+                      onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                      onClick={() => setShowImageModal(true)}
+                    />
+                  </div>
                 </Card>
               )}
               <Card className="card-soono mb-4">
@@ -441,6 +459,23 @@ const ProdutoDetalhe = () => {
             Sim, Excluir Produto
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Visualização de Imagem */}
+      <Modal show={showImageModal} onHide={() => setShowImageModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Imagem - {produto?.nome}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center p-2">
+          {produto?.imagemUrl && (
+            <img
+              src={`http://localhost:3001${produto.imagemUrl}`}
+              alt={`Imagem de ${produto.nome}`}
+              className="img-fluid rounded"
+              style={{ maxHeight: '80vh', maxWidth: '100%' }}
+            />
+          )}
+        </Modal.Body>
       </Modal>
     </Container>
   );
