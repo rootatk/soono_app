@@ -114,6 +114,22 @@ const buscarProdutoPorId = async (req, res) => {
       const insumosMapeados = produto.insumos.map(insumoUtilizado => {
         const insumoCompleto = insumosCompletos.find(i => i.id === insumoUtilizado.id);
         
+        // Se o insumo não for encontrado, retornar dados padrão
+        if (!insumoCompleto) {
+          console.warn(`Insumo ID ${insumoUtilizado.id} não encontrado para produto ${produto.nome}`);
+          return {
+            id: insumoUtilizado.id,
+            nome: `Insumo ${insumoUtilizado.id} (não encontrado)`,
+            custoUnitario: 0,
+            unidade: insumoUtilizado.unidade || 'unidade',
+            quantidade: parseFloat(insumoUtilizado.quantidade) || 0,
+            custoTotal: 0,
+            variacao: null,
+            erro: 'Insumo não encontrado'
+          };
+        }
+        
+        // Processar apenas se o insumo foi encontrado
         let custoTotalInsumo = 0;
         const unidadeUtilizada = insumoUtilizado.unidade || insumoCompleto.unidade;
         const quantidade = parseFloat(insumoUtilizado.quantidade) || 0;

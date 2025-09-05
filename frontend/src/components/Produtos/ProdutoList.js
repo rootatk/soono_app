@@ -314,13 +314,33 @@ const ProdutoList = () => {
                               <strong>Preço:</strong>
                               <strong className="text-success">{formatarMoeda(produto.precoVenda || 0)}</strong>
                             </div>
-                            <div className="mt-auto pt-3">
+                            <div className="d-flex gap-2 mt-auto pt-3">
                               <Button
                                 variant="outline-primary"
-                                className="w-100"
+                                size="sm"
+                                className="flex-fill"
                                 onClick={() => navigate(`/produtos/${produto.id}`)}
+                                title="Ver detalhes"
                               >
-                                Ver Detalhes
+                                <i className="fas fa-eye me-1"></i> Ver
+                              </Button>
+                              <Button
+                                variant="outline-warning"
+                                size="sm"
+                                className="flex-fill"
+                                onClick={() => navigate(`/produtos/${produto.id}/editar`)}
+                                title="Editar"
+                              >
+                                <i className="fas fa-edit me-1"></i> Editar
+                              </Button>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                className="flex-fill"
+                                onClick={() => handleExcluir(produto)}
+                                title="Excluir"
+                              >
+                                <i className="fas fa-trash me-1"></i> Excluir
                               </Button>
                             </div>
                           </Card.Body>
