@@ -112,8 +112,8 @@ const ProdutoList = () => {
   };
 
   const calcularMargemLucro = (produto) => {
-    if (!produto.custoTotal || produto.custoTotal === 0) return 0;
-    return ((produto.precoVenda - produto.custoTotal) / produto.custoTotal * 100);
+    if (!produto.precoVenda || produto.precoVenda === 0) return 0;
+    return ((produto.precoVenda - produto.custoTotal) / produto.precoVenda * 100);
   };
 
   const getVariantePreco = (margem) => {

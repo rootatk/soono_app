@@ -115,10 +115,12 @@ Produto.prototype.getLucroPorUnidade = function() {
 };
 
 // Método para calcular margem real (%)
+// Formula: ((Preço de venda - Custo Total) / Preço de venda) * 100
 Produto.prototype.getMargemReal = function() {
-  if (parseFloat(this.custoTotal) === 0) return 0;
+  const precoVenda = parseFloat(this.precoVenda) || 0;
+  if (precoVenda === 0) return 0;
   const lucro = this.getLucroPorUnidade();
-  return (lucro / parseFloat(this.custoTotal)) * 100;
+  return (lucro / precoVenda) * 100;
 };
 
 module.exports = Produto;

@@ -166,7 +166,13 @@ const ProdutoForm = () => {
 
   const calcularPrecoVenda = () => {
     const custoTotal = calcularCustoTotal();
-    return custoTotal * (1 + produto.margemLucro / 100);
+    const margem = parseFloat(produto.margemLucro) || 0;
+    
+    if (custoTotal === 0 || margem === 0) return 0;
+    if (margem >= 100) return custoTotal * 10; // Evita divisão por zero
+    
+    // Fórmula correta para margem: Preço = Custo / (1 - margem/100)
+    return custoTotal / (1 - margem / 100);
   };
 
   const handleSubmit = async (e) => {

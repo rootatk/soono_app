@@ -48,8 +48,9 @@ const ProdutoDetalhe = () => {
   };
 
   const calcularMargemLucro = () => {
-    if (!produto?.custoTotal || produto.custoTotal === 0) return 0;
-    return ((produto.precoVenda - produto.custoTotal) / produto.custoTotal * 100);
+    if (!produto?.precoVenda || produto.precoVenda === 0) return 0;
+    // Fórmula correta para margem: (Preço - Custo) / Preço * 100
+    return ((produto.precoVenda - produto.custoTotal) / produto.precoVenda * 100);
   };
 
   const calcularLucroUnitario = () => {

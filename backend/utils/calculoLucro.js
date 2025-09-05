@@ -59,8 +59,10 @@ const calcularPrecoVenda = (custoTotal, margemLucro) => {
   const margemNum = parseFloat(margemLucro) || 0;
   
   if (custoNum === 0) return 0;
+  if (margemNum >= 100) return custoNum * 10; // Evita divisão por zero ou números negativos
   
-  return custoNum * (1 + margemNum / 100);
+  // Fórmula correta para margem: Preço = Custo / (1 - margem/100)
+  return custoNum / (1 - margemNum / 100);
 };
 
 /**
@@ -80,14 +82,16 @@ const calcularLucroPorUnidade = (precoVenda, custoTotal) => {
  * @param {Number} precoVenda - Preço de venda
  * @param {Number} custoTotal - Custo total
  * @returns {Number} - Margem de lucro em % (ex: 30.5)
+ * Formula: ((Preço de venda - Custo Total) / Preço de venda) * 100
  */
 const calcularMargemReal = (precoVenda, custoTotal) => {
+  const precoNum = parseFloat(precoVenda) || 0;
   const custoNum = parseFloat(custoTotal) || 0;
   
-  if (custoNum === 0) return 0;
+  if (precoNum === 0) return 0;
   
   const lucro = calcularLucroPorUnidade(precoVenda, custoTotal);
-  return (lucro / custoNum) * 100;
+  return (lucro / precoNum) * 100;
 };
 
 /**
