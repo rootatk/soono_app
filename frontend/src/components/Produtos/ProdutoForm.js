@@ -193,7 +193,15 @@ const ProdutoForm = () => {
         uploadData.append('imagem', imagemFile);
         try {
           const response = await uploadService.uploadImagem(uploadData);
-          finalImagemUrl = response.data.imagemUrl;
+          
+          // Tentar acessar a imagemUrl de diferentes formas
+          finalImagemUrl = response.data?.data?.imagemUrl || 
+                          response.data?.imagemUrl || 
+                          response.imagemUrl;
+          
+          if (!finalImagemUrl) {
+            throw new Error('Não foi possível obter a URL da imagem do upload');
+          }
         } catch (uploadError) {
           console.error('Falha no upload da imagem:', uploadError);
           throw new Error('Falha no upload da imagem.');
