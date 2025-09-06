@@ -412,6 +412,7 @@ const InsumoList = () => {
                             <p className="text-muted small mb-0">{insumo.categoria}</p>
                           </div>
                           <span className={`badge bg-${alerta.classe}`}>
+                            <i className={`fas ${alerta.icone} me-1`}></i>
                             {alerta.texto}
                           </span>
                         </div>
@@ -523,6 +524,7 @@ const InsumoList = () => {
                           <td className="text-center">{insumo.estoqueAtual} {insumo.unidade}</td>
                           <td className="text-center">
                             <span className={`badge bg-${alerta.classe}`}>
+                              <i className={`fas ${alerta.icone} me-1`}></i>
                               {alerta.texto}
                             </span>
                           </td>
