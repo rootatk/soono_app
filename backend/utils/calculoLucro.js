@@ -200,6 +200,163 @@ const formatarMoeda = (valor) => {
   return roundToTwo(parseFloat(valor) || 0);
 };
 
+/**
+ * Simula preço de venda baseado em uma nova margem
+ * @param {Number} custoTotal - Custo total do produto
+ * @param {Number} novaMargemPercentual - Nova margem desejada (%)
+ * @returns {Object} - {precoVenda, lucro, margemReal}
+ */
+const simularPrecoComMargem = (custoTotal, novaMargemPercentual) => {
+  const custoNum = parseFloat(custoTotal) || 0;
+  const margemNum = parseFloat(novaMargemPercentual) || 0;
+  
+  if (custoNum === 0) {
+    return {
+      precoVenda: 0,
+      lucro: 0,
+      margemReal: 0
+    };
+  }
+  
+  if (margemNum >= 100) {
+    return {
+      precoVenda: 0,
+      lucro: 0,
+      margemReal: 0,
+      erro: 'Margem não pode ser 100% ou maior'
+    };
+  }
+  
+  const precoVenda = custoNum / (1 - margemNum / 100);
+  const lucro = precoVenda - custoNum;
+  const margemReal = (lucro / precoVenda) * 100;
+  
+  return {
+    precoVenda: roundToTwo(precoVenda),
+    lucro: roundToTwo(lucro),
+    margemReal: roundToTwo(margemReal)
+  };
+};
+
+/**
+ * Calcula desconto combo baseado na quantidade de produtos
+ * @param {Array} itens - Array de itens da venda [{quantidade, eh_brinde}]
+ * @returns {Object} - {quantidadeParaDesconto, percentualDesconto, aplicaDesconto}
+ */
+const calcularDescontoCombo = (itens) => {
+  if (!Array.isArray(itens) || itens.length === 0) {
+    return {
+      quantidadeParaDesconto: 0,
+      percentualDesconto: 0,
+      aplicaDesconto: false
+    };
+  }
+  
+  // Conta produtos para desconto (brindes contam como 1 independente da quantidade)
+  const quantidadeParaDesconto = itens.reduce((total, item) => {
+    if (item.eh_brinde) {
+      return total + 1; // Brinde sempre conta como 1
+    }
+    return total + (parseInt(item.quantidade) || 0);
+  }, 0);
+  
+  let percentualDesconto = 0;
+  let aplicaDesconto = false;
+  
+  if (quantidadeParaDesconto >= 3) {
+    percentualDesconto = 10;
+    aplicaDesconto = true;
+  } else if (quantidadeParaDesconto === 2) {
+    percentualDesconto = 5;
+    aplicaDesconto = true;
+  }
+  
+  return {
+    quantidadeParaDesconto,
+    percentualDesconto,
+    aplicaDesconto
+  };
+};
+
+/**
+ * Aplica desconto combo no valor total
+ * @param {Number} subtotal - Valor subtotal
+ * @param {Number} percentualDesconto - Percentual de desconto
+ * @returns {Object} - {valorDesconto, total}
+ */
+const aplicarDescontoCombo = (subtotal, percentualDesconto) => {
+  const subtotalNum = parseFloat(subtotal) || 0;
+  const percentualNum = parseFloat(percentualDesconto) || 0;
+  
+  const valorDesconto = (subtotalNum * percentualNum) / 100;
+  const total = subtotalNum - valorDesconto;
+  
+  return {
+    valorDesconto: roundToTwo(valorDesconto),
+    total: roundToTwo(total)
+  };
+};
+
+/**
+ * Calcula totais de uma venda com itens e descontos
+ * @param {Array} itens - Array de itens [{quantidade, preco_unitario_final, eh_brinde, custo_total}]
+ * @returns {Object} - Cálculos completos da venda
+ */
+const calcularTotaisVenda = (itens) => {
+  if (!Array.isArray(itens) || itens.length === 0) {
+    return {
+      subtotal: 0,
+      descontoCombo: {
+        quantidadeParaDesconto: 0,
+        percentualDesconto: 0,
+        aplicaDesconto: false,
+        valorDesconto: 0
+      },
+      total: 0,
+      custoTotal: 0,
+      lucroTotal: 0,
+      margemRealTotal: 0
+    };
+  }
+  
+  // Calcula subtotal e custo total
+  const subtotal = itens.reduce((total, item) => {
+    const quantidade = parseInt(item.quantidade) || 0;
+    const precoUnitario = parseFloat(item.preco_unitario_final) || 0;
+    return total + (quantidade * precoUnitario);
+  }, 0);
+  
+  const custoTotal = itens.reduce((total, item) => {
+    return total + (parseFloat(item.custo_total) || 0);
+  }, 0);
+  
+  // Calcula desconto combo
+  const descontoCombo = calcularDescontoCombo(itens);
+  let valorDesconto = 0;
+  let total = subtotal;
+  
+  if (descontoCombo.aplicaDesconto) {
+    const resultadoDesconto = aplicarDescontoCombo(subtotal, descontoCombo.percentualDesconto);
+    valorDesconto = resultadoDesconto.valorDesconto;
+    total = resultadoDesconto.total;
+  }
+  
+  const lucroTotal = total - custoTotal;
+  const margemRealTotal = total > 0 ? (lucroTotal / total) * 100 : 0;
+  
+  return {
+    subtotal: roundToTwo(subtotal),
+    descontoCombo: {
+      ...descontoCombo,
+      valorDesconto: roundToTwo(valorDesconto)
+    },
+    total: roundToTwo(total),
+    custoTotal: roundToTwo(custoTotal),
+    lucroTotal: roundToTwo(lucroTotal),
+    margemRealTotal: roundToTwo(margemRealTotal)
+  };
+};
+
 module.exports = {
   calcularCustoInsumos,
   calcularCustoMaoDeObra,
@@ -211,5 +368,10 @@ module.exports = {
   calcularValorTotalEstoque,
   identificarEstoqueBaixo,
   formatarMoeda,
-  roundToTwo
+  roundToTwo,
+  // Novas funções para vendas e simulação
+  simularPrecoComMargem,
+  calcularDescontoCombo,
+  aplicarDescontoCombo,
+  calcularTotaisVenda
 };

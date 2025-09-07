@@ -11,6 +11,8 @@ const { testConnection, syncDatabase } = require('./config/db');
 require('./models/Insumo');
 require('./models/Produto');
 require('./models/Venda');
+require('./models/VendaCabecalho');
+require('./models/VendaItem');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -88,7 +90,7 @@ const startServer = async () => {
     // Testar conexão com banco
     await testConnection();
     
-    // Sincronizar modelos (criar tabelas)
+    // Sincronizar modelos (criar tabelas) - continuar mesmo com erros
     await syncDatabase();
     
     console.log('📊 Banco de dados sincronizado!');

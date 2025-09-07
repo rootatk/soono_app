@@ -17,6 +17,12 @@ import ProdutoForm from './components/Produtos/ProdutoForm';
 import ProdutoList from './components/Produtos/ProdutoList';
 import ProdutoDetalhe from './components/Produtos/ProdutoDetalhe';
 
+// Componentes de Vendas
+import VendaList from './components/Vendas/VendaList';
+import VendaForm from './components/Vendas/VendaForm';
+import VendaDetalhe from './components/Vendas/VendaDetalhe';
+import PriceSimulator from './components/Vendas/PriceSimulator';
+
 // Adicione esta importação temporária no App.js
 import DebugInsumos from './components/Insumos/DebugInsumos';
 
@@ -44,15 +50,14 @@ function App() {
             <Route path="/produtos/:id" element={<ProdutoDetalhe />} />
             <Route path="/produtos" element={<ProdutoList />} />
             
-            {/* Rotas futuras - Vendas */}
-            <Route path="/vendas" element={
-              <div className="container mt-4">
-                <div className="alert alert-info">
-                  <h4>Vendas</h4>
-                  <p>Módulo em desenvolvimento (Fase 4C)</p>
-                </div>
-              </div>
-            } />
+            {/* Rotas de Vendas */}
+            <Route path="/vendas/nova" element={<VendaForm />} />
+            <Route path="/vendas/:id/editar" element={<VendaForm />} />
+            <Route path="/vendas/:id" element={<VendaDetalhe />} />
+            <Route path="/vendas" element={<VendaList />} />
+            
+            {/* Calculadora de Preços */}
+            <Route path="/calculadora" element={<PriceSimulator />} />
             
             {/* Rotas futuras - Relatórios */}
             <Route path="/relatorios" element={

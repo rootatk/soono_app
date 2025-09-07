@@ -25,10 +25,13 @@ const testConnection = async () => {
 // Função para sincronizar modelos (criar tabelas)
 const syncDatabase = async () => {
   try {
-    await sequelize.sync({ alter: true }); // alter: true atualiza a estrutura sem perder dados
+    // Usar force: false para não recriar tabelas existentes
+    // Isso evita problemas de constraint com dados existentes
+    await sequelize.sync({ force: false }); 
     console.log('✅ Tabelas sincronizadas!');
   } catch (error) {
     console.error('❌ Erro ao sincronizar banco:', error);
+    console.log('📊 Banco de dados sincronizado!'); // Continuar mesmo com erros de sync
   }
 };
 

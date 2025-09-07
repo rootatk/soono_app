@@ -1,672 +1,651 @@
-/**
- * Controller para gerenciar Vendas
- * Sistema Sóonó - Macramê & Crochê
- */
-
-const Venda = require('../models/Venda');
+const VendaCabecalho = require('../models/VendaCabecalho');
+const VendaItem = require('../models/VendaItem');
 const Produto = require('../models/Produto');
-const Insumo = require('../models/Insumo');
 const { Op } = require('sequelize');
+const { 
+  calcularTotaisVenda, 
+  simularPrecoComMargem,
+  calcularDescontoCombo 
+} = require('../utils/calculoLucro');
+
+// Estabelecer relações entre os models
+VendaCabecalho.hasMany(VendaItem, { foreignKey: 'venda_cabecalho_id', as: 'itens' });
+VendaItem.belongsTo(VendaCabecalho, { foreignKey: 'venda_cabecalho_id', as: 'venda' });
+VendaItem.belongsTo(Produto, { foreignKey: 'produto_id', as: 'produto' });
 
 /**
- * GET /api/vendas - Listar todas as vendas
+ * Gera código único para a venda
  */
-const listarVendas = async (req, res) => {
+const gerarCodigoVenda = () => {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `V${timestamp}${random}`;
+};
+
+/**
+ * Listar todas as vendas
+ */
+const listar = async (req, res) => {
   try {
-    const {
-      data_inicio,
-      data_fim,
-      produto_id,
-      cliente,
-      busca,
-      ordenar = 'dataVenda',
-      direcao = 'DESC'
-    } = req.query;
-
-    const filtros = {};
-    const ordem = [];
-
-    // Filtro por período
-    if (data_inicio || data_fim) {
-      filtros.dataVenda = {};
-      if (data_inicio) filtros.dataVenda[Op.gte] = data_inicio;
-      if (data_fim) filtros.dataVenda[Op.lte] = data_fim;
+    const { page = 1, limit = 10, status, dataInicio, dataFim } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const where = {};
+    
+    if (status) {
+      where.status = status;
     }
-
-    // Filtro por produto
-    if (produto_id) {
-      filtros.produtoId = produto_id;
+    
+    if (dataInicio && dataFim) {
+      where.data = {
+        [Op.between]: [dataInicio, dataFim]
+      };
     }
-
-    // Filtro por cliente
-    if (cliente && cliente.trim()) {
-      filtros.cliente = { [Op.like]: `%${cliente.trim()}%` };
-    }
-
-    // Filtro por busca geral
-    if (busca && busca.trim()) {
-      filtros[Op.or] = [
-        { produtoNome: { [Op.like]: `%${busca.trim()}%` } },
-        { cliente: { [Op.like]: `%${busca.trim()}%` } },
-        { observacoes: { [Op.like]: `%${busca.trim()}%` } }
-      ];
-    }
-
-    // Ordenação
-    if (['dataVenda', 'produtoNome', 'valorTotal', 'lucroReal'].includes(ordenar)) {
-      ordem.push([ordenar, direcao.toUpperCase()]);
-    } else {
-      ordem.push(['dataVenda', 'DESC']);
-    }
-
-    const vendas = await Venda.findAll({
-      where: filtros,
-      order: ordem
+    
+    const { rows: vendas, count: total } = await VendaCabecalho.findAndCountAll({
+      where,
+      include: [{
+        model: VendaItem,
+        as: 'itens',
+        include: [{
+          model: Produto,
+          as: 'produto',
+          attributes: ['id', 'nome', 'imagemUrl']
+        }]
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
     });
 
-    // Calcular estatísticas
-    const stats = {
-      totalVendas: vendas.length,
-      faturamentoTotal: vendas.reduce((total, venda) => 
-        total + parseFloat(venda.valorTotal), 0
-      ),
-      lucroTotal: vendas.reduce((total, venda) => 
-        total + parseFloat(venda.lucroReal), 0
-      ),
-      ticketMedio: vendas.length > 0 ? 
-        vendas.reduce((total, venda) => total + parseFloat(venda.valorTotal), 0) / vendas.length : 0
-    };
+    // Recalcular totais para cada venda
+    const vendasComTotais = vendas.map(venda => {
+      // Calcular totais baseado nos itens da venda
+      let subtotalCalculado = 0;
+      let custoTotalCalculado = 0;
+      let quantidadeTotalItens = 0;
+      
+      venda.itens.forEach(item => {
+        const quantidade = parseInt(item.quantidade) || 0;
+        const precoUnitarioFinal = parseFloat(item.preco_unitario_final) || 0;
+        const custoTotal = parseFloat(item.custo_total) || 0;
+        
+        subtotalCalculado += quantidade * precoUnitarioFinal;
+        custoTotalCalculado += custoTotal;
+        quantidadeTotalItens += quantidade;
+      });
+      
+      // Aplicar desconto percentual baseado na quantidade de produtos
+      let descontoPercentual = 0;
+      if (quantidadeTotalItens >= 3) {
+        descontoPercentual = 10; // 10% para 3 ou mais itens
+      } else if (quantidadeTotalItens === 2) {
+        descontoPercentual = 5; // 5% para 2 itens
+      }
+      
+      // Calcular desconto percentual
+      let descontoValor = 0;
+      if (descontoPercentual > 0) {
+        descontoValor = (subtotalCalculado * descontoPercentual) / 100;
+      }
+      
+      // Total final após desconto
+      let totalFinal = subtotalCalculado - descontoValor;
+      
+      // Lucro total
+      let lucroTotal = totalFinal - custoTotalCalculado;
 
+      return {
+        ...venda.toJSON(),
+        subtotal: subtotalCalculado,
+        desconto_percentual: descontoPercentual,
+        desconto_valor: descontoValor,
+        total: totalFinal,
+        lucro_total: lucroTotal,
+        quantidade_produtos: quantidadeTotalItens
+      };
+    });
+    
     res.json({
-      success: true,
-      data: vendas,
-      stats,
-      filtros: { data_inicio, data_fim, produto_id, cliente, busca }
+      vendas: vendasComTotais,
+      total,
+      totalPaginas: Math.ceil(total / limit),
+      paginaAtual: parseInt(page)
     });
-
   } catch (error) {
     console.error('Erro ao listar vendas:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
     });
   }
 };
 
 /**
- * GET /api/vendas/:id - Buscar venda por ID
+ * Buscar venda por ID
  */
-const buscarVendaPorId = async (req, res) => {
+const buscarPorId = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const venda = await Venda.findByPk(id);
-
+    
+    const venda = await VendaCabecalho.findByPk(id, {
+      include: [{
+        model: VendaItem,
+        as: 'itens',
+        include: [{
+          model: Produto,
+          as: 'produto',
+          attributes: ['id', 'nome', 'imagemUrl', 'custoTotal']
+        }]
+      }]
+    });
+    
     if (!venda) {
-      return res.status(404).json({
-        success: false,
-        error: 'Venda não encontrada'
-      });
+      return res.status(404).json({ error: 'Venda não encontrada' });
     }
 
-    res.json({
-      success: true,
-      data: venda
+    // Calcular totais baseado nos itens da venda
+    let subtotalCalculado = 0;
+    let custoTotalCalculado = 0;
+    let quantidadeTotalItens = 0;
+    
+    venda.itens.forEach(item => {
+      const quantidade = parseInt(item.quantidade) || 0;
+      const precoUnitarioFinal = parseFloat(item.preco_unitario_final) || 0;
+      const custoTotal = parseFloat(item.custo_total) || 0;
+      
+      subtotalCalculado += quantidade * precoUnitarioFinal;
+      custoTotalCalculado += custoTotal;
+      quantidadeTotalItens += quantidade;
     });
-
+    
+    // Aplicar desconto percentual baseado na quantidade
+    let descontoPercentual = 0;
+    if (quantidadeTotalItens >= 3) {
+      descontoPercentual = 10; // 10% para 3 ou mais itens
+    } else if (quantidadeTotalItens === 2) {
+      descontoPercentual = 5; // 5% para 2 itens
+    }
+    
+    // Calcular desconto percentual
+    let descontoValor = 0;
+    if (descontoPercentual > 0) {
+      descontoValor = (subtotalCalculado * descontoPercentual) / 100;
+    }
+    
+    // Total final após desconto
+    let totalFinal = subtotalCalculado - descontoValor;
+    
+    // Lucro total
+    let lucroTotal = totalFinal - custoTotalCalculado;
+    
+    // Retornar venda com totais recalculados
+    const vendaComTotais = {
+      ...venda.toJSON(),
+      subtotal: subtotalCalculado,
+      desconto_percentual: descontoPercentual,
+      desconto_valor: descontoValor,
+      total: totalFinal,
+      lucro_total: lucroTotal,
+      quantidade_produtos: quantidadeTotalItens
+    };
+    
+    res.json(vendaComTotais);
   } catch (error) {
     console.error('Erro ao buscar venda:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
     });
   }
 };
 
 /**
- * POST /api/vendas - Criar nova venda
+ * Criar nova venda
  */
-const criarVenda = async (req, res) => {
+const criar = async (req, res) => {
+  const transaction = await VendaCabecalho.sequelize.transaction();
+  
   try {
-    const {
-      produtoId,
-      quantidade = 1,
-      precoUnitario,
-      dataVenda,
+    const { 
+      itens, 
+      cliente, 
+      observacoes 
+    } = req.body;
+    
+    if (!itens || !Array.isArray(itens) || itens.length === 0) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'Itens da venda são obrigatórios' });
+    }
+    
+    // Buscar produtos para obter custos atuais
+    const produtoIds = itens.map(item => item.produto_id);
+    const produtos = await Produto.findAll({
+      where: { id: produtoIds }
+    });
+    
+    const produtosMap = {};
+    produtos.forEach(produto => {
+      produtosMap[produto.id] = produto;
+    });
+    
+    // Preparar itens com custos atualizados
+    const itensComCustos = itens.map(item => {
+      const produto = produtosMap[item.produto_id];
+      if (!produto) {
+        throw new Error(`Produto ID ${item.produto_id} não encontrado`);
+      }
+      
+      const quantidade = parseInt(item.quantidade) || 1;
+      const custoUnitario = parseFloat(produto.custoTotal) || 0;
+      const custoTotal = custoUnitario * quantidade;
+      
+      // Se tem margem simulada, calcular novo preço
+      let precoUnitarioFinal = parseFloat(produto.precoVenda) || 0;
+      if (item.margem_simulada !== undefined && item.margem_simulada !== null) {
+        const simulacao = simularPrecoComMargem(custoUnitario, item.margem_simulada);
+        if (!simulacao.erro) {
+          precoUnitarioFinal = simulacao.precoVenda;
+        }
+      }
+      
+      const valorTotal = precoUnitarioFinal * quantidade;
+      const lucroItem = valorTotal - custoTotal;
+      
+      return {
+        ...item,
+        produto_nome: produto.nome,
+        preco_unitario_original: parseFloat(produto.precoVenda),
+        preco_unitario_final: precoUnitarioFinal,
+        valor_total: valorTotal,
+        custo_total: custoTotal,
+        lucro_item: lucroItem,
+        eh_brinde: item.eh_brinde || false,
+        insumos_snapshot: produto.insumosUtilizados || null
+      };
+    });
+    
+    // Calcular totais da venda
+    const totaisVenda = calcularTotaisVenda(itensComCustos);
+    
+    // Criar cabeçalho da venda
+    const vendaCabecalho = await VendaCabecalho.create({
+      codigo: gerarCodigoVenda(),
+      data: new Date(),
+      subtotal: totaisVenda.subtotal,
+      desconto_percentual: totaisVenda.descontoCombo.percentualDesconto,
+      desconto_valor: totaisVenda.descontoCombo.valorDesconto,
+      total: totaisVenda.total,
+      lucro_total: totaisVenda.lucroTotal,
+      quantidade_produtos: totaisVenda.descontoCombo.quantidadeParaDesconto,
+      cliente: cliente || null,
+      observacoes: observacoes || null,
+      status: 'rascunho'
+    }, { transaction });
+    
+    // Criar itens da venda
+    const itensParaCriar = itensComCustos.map(item => ({
+      ...item,
+      venda_cabecalho_id: vendaCabecalho.id
+    }));
+    
+    await VendaItem.bulkCreate(itensParaCriar, { transaction });
+    
+    await transaction.commit();
+    
+    // Buscar venda completa para retornar
+    const vendaCompleta = await VendaCabecalho.findByPk(vendaCabecalho.id, {
+      include: [{
+        model: VendaItem,
+        as: 'itens',
+        include: [{
+          model: Produto,
+          as: 'produto',
+          attributes: ['id', 'nome', 'imagemUrl']
+        }]
+      }]
+    });
+    
+    res.status(201).json(vendaCompleta);
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Erro ao criar venda:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+};
+
+/**
+ * Simular preços em tempo real
+ */
+const simularPrecos = async (req, res) => {
+  try {
+    const { itens } = req.body;
+    
+    if (!itens || !Array.isArray(itens)) {
+      return res.status(400).json({ error: 'Itens são obrigatórios para simulação' });
+    }
+    
+    // Buscar produtos para obter custos
+    const produtoIds = itens.map(item => item.produto_id);
+    const produtos = await Produto.findAll({
+      where: { id: produtoIds }
+    });
+    
+    const produtosMap = {};
+    produtos.forEach(produto => {
+      produtosMap[produto.id] = produto;
+    });
+    
+    // Processar cada item com simulação
+    const itensSimulados = itens.map(item => {
+      const produto = produtosMap[item.produto_id];
+      if (!produto) {
+        return {
+          ...item,
+          erro: 'Produto não encontrado'
+        };
+      }
+      
+      const quantidade = parseInt(item.quantidade) || 1;
+      const custoUnitario = parseFloat(produto.custoTotal) || 0;
+      const precoOriginal = parseFloat(produto.precoVenda) || 0;
+      
+      // Simular nova margem se fornecida
+      let simulacao = {
+        precoVenda: precoOriginal,
+        lucro: precoOriginal - custoUnitario,
+        margemReal: precoOriginal > 0 ? ((precoOriginal - custoUnitario) / precoOriginal) * 100 : 0
+      };
+      
+      if (item.margem_simulada !== undefined && item.margem_simulada !== null) {
+        simulacao = simularPrecoComMargem(custoUnitario, item.margem_simulada);
+      }
+      
+      const valorTotal = simulacao.precoVenda * quantidade;
+      const custoTotal = custoUnitario * quantidade;
+      const lucroTotal = valorTotal - custoTotal;
+      
+      return {
+        produto_id: item.produto_id,
+        produto_nome: produto.nome,
+        quantidade: quantidade,
+        custo_unitario: custoUnitario,
+        preco_original: precoOriginal,
+        margem_simulada: item.margem_simulada,
+        preco_simulado: simulacao.precoVenda,
+        valor_total: valorTotal,
+        custo_total: custoTotal,
+        lucro_total: lucroTotal,
+        margem_real: simulacao.margemReal,
+        eh_brinde: item.eh_brinde || false,
+        erro: simulacao.erro || null
+      };
+    });
+    
+    // Calcular totais com nova lógica de desconto simplificada
+    let subtotalCalculado = 0;
+    let custoTotalCalculado = 0;
+    let quantidadeTotalItens = 0;
+    
+    itensSimulados.forEach(item => {
+      const quantidade = parseInt(item.quantidade) || 0;
+      const precoUnitarioFinal = parseFloat(item.preco_simulado) || 0;
+      const custoTotal = parseFloat(item.custo_total) || 0;
+      
+      subtotalCalculado += quantidade * precoUnitarioFinal;
+      custoTotalCalculado += custoTotal;
+      quantidadeTotalItens += quantidade;
+    });
+    
+    // Aplicar desconto percentual baseado na quantidade
+    let descontoPercentual = 0;
+    if (quantidadeTotalItens >= 3) {
+      descontoPercentual = 10; // 10% para 3 ou mais itens
+    } else if (quantidadeTotalItens === 2) {
+      descontoPercentual = 5; // 5% para 2 itens
+    }
+    
+    // Calcular desconto percentual
+    let descontoValor = 0;
+    if (descontoPercentual > 0) {
+      descontoValor = (subtotalCalculado * descontoPercentual) / 100;
+    }
+    
+    // Total final após desconto
+    let totalFinal = subtotalCalculado - descontoValor;
+    
+    // Lucro total
+    let lucroTotal = totalFinal - custoTotalCalculado;
+    
+    // Margem real total
+    let margemRealTotal = totalFinal > 0 ? (lucroTotal / totalFinal) * 100 : 0;
+    
+    const totaisVenda = {
+      subtotal: subtotalCalculado,
+      descontoCombo: {
+        quantidadeParaDesconto: quantidadeTotalItens,
+        percentualDesconto: descontoPercentual,
+        aplicaDesconto: descontoPercentual > 0,
+        valorDesconto: descontoValor
+      },
+      total: totalFinal,
+      custoTotal: custoTotalCalculado,
+      lucroTotal: lucroTotal,
+      margemRealTotal: margemRealTotal
+    };
+    
+    res.json({
+      itens: itensSimulados,
+      totais: totaisVenda
+    });
+  } catch (error) {
+    console.error('Erro ao simular preços:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+};
+
+// Atualizar venda existente
+const atualizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { itens, cliente, observacoes } = req.body;
+
+    // Verificar se a venda existe
+    const vendaExistente = await VendaCabecalho.findByPk(id);
+    if (!vendaExistente) {
+      return res.status(404).json({ error: 'Venda não encontrada' });
+    }
+
+    // Só permite atualizar vendas em rascunho
+    if (vendaExistente.status !== 'rascunho') {
+      return res.status(400).json({ 
+        error: 'Só é possível editar vendas em rascunho' 
+      });
+    }
+
+    // Remover itens existentes
+    await VendaItem.destroy({
+      where: { venda_cabecalho_id: id }
+    });
+
+    // Calcular totais dos novos itens
+    const totaisCalculados = calcularTotaisVenda(itens);
+
+    // Atualizar cabeçalho da venda
+    await vendaExistente.update({
+      quantidade_produtos: totaisCalculados.quantidadeProdutos,
+      subtotal: totaisCalculados.subtotal,
+      desconto_percentual: totaisCalculados.descontoPercentual,
+      desconto_valor: totaisCalculados.descontoValor,
+      total: totaisCalculados.total,
+      lucro_total: totaisCalculados.lucroTotal,
       cliente,
       observacoes
-    } = req.body;
-
-    // Validações básicas
-    if (!produtoId) {
-      return res.status(400).json({
-        success: false,
-        error: 'ID do produto é obrigatório'
-      });
-    }
-
-    if (!precoUnitario || parseFloat(precoUnitario) <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Preço unitário deve ser maior que zero'
-      });
-    }
-
-    if (parseInt(quantidade) <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Quantidade deve ser maior que zero'
-      });
-    }
-
-    // Buscar produto
-    const produto = await Produto.findByPk(produtoId);
-
-    if (!produto) {
-      return res.status(404).json({
-        success: false,
-        error: 'Produto não encontrado'
-      });
-    }
-
-    if (!produto.ativo) {
-      return res.status(400).json({
-        success: false,
-        error: 'Produto está inativo'
-      });
-    }
-
-    // Verificar disponibilidade de insumos
-    if (produto.insumos && produto.insumos.length > 0) {
-      const idsInsumos = produto.insumos.map(item => item.id);
-      const insumos = await Insumo.findAll({
-        where: { id: idsInsumos }
-      });
-
-      const insumosInsuficientes = [];
-
-      for (const insumoUtilizado of produto.insumos) {
-        const insumo = insumos.find(i => i.id === insumoUtilizado.id);
-        if (!insumo) {
-          insumosInsuficientes.push(`Insumo ID ${insumoUtilizado.id} não encontrado`);
-          continue;
-        }
-
-        const quantidadeNecessaria = parseFloat(insumoUtilizado.quantidade) * parseInt(quantidade);
-        const estoqueAtual = parseFloat(insumo.estoqueAtual);
-
-        if (estoqueAtual < quantidadeNecessaria) {
-          insumosInsuficientes.push(
-            `${insumo.nome}: necessário ${quantidadeNecessaria} ${insumo.unidade}, disponível ${estoqueAtual}`
-          );
-        }
-      }
-
-      if (insumosInsuficientes.length > 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Estoque insuficiente',
-          details: insumosInsuficientes
-        });
-      }
-
-      // Deduzir do estoque
-      for (const insumoUtilizado of produto.insumos) {
-        const insumo = insumos.find(i => i.id === insumoUtilizado.id);
-        const quantidadeNecessaria = parseFloat(insumoUtilizado.quantidade) * parseInt(quantidade);
-        const novoEstoque = parseFloat(insumo.estoqueAtual) - quantidadeNecessaria;
-
-        await insumo.update({ estoqueAtual: novoEstoque });
-      }
-    }
-
-    // Calcular valores
-    const valorTotal = parseFloat(precoUnitario) * parseInt(quantidade);
-    const custoTotalProduto = parseFloat(produto.custoTotal) * parseInt(quantidade);
-    const lucroReal = valorTotal - custoTotalProduto;
-
-    // Snapshot dos insumos utilizados
-    let insumosSnapshot = null;
-    if (produto.insumos && produto.insumos.length > 0) {
-      const idsInsumos = produto.insumos.map(item => item.id);
-      const insumosCompletos = await Insumo.findAll({
-        where: { id: idsInsumos }
-      });
-
-      insumosSnapshot = produto.insumos.map(insumoUtilizado => {
-        const insumoCompleto = insumosCompletos.find(i => i.id === insumoUtilizado.id);
-        return {
-          id: insumoUtilizado.id,
-          nome: insumoCompleto?.nome,
-          quantidade: insumoUtilizado.quantidade,
-          custoUnitario: insumoCompleto?.custoUnitario,
-          unidade: insumoCompleto?.unidade
-        };
-      });
-    }
-
-    const novaVenda = await Venda.create({
-      produtoId,
-      produtoNome: produto.nome,
-      quantidade: parseInt(quantidade),
-      precoUnitario: parseFloat(precoUnitario),
-      valorTotal,
-      custoTotalProduto,
-      lucroReal,
-      dataVenda: dataVenda || new Date().toISOString().split('T')[0],
-      cliente: cliente?.trim(),
-      observacoes: observacoes?.trim(),
-      insumosUtilizados: insumosSnapshot
     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Venda registrada com sucesso',
-      data: novaVenda
+    // Criar novos itens
+    const itensParaCriar = itens.map(item => ({
+      venda_cabecalho_id: id,
+      produto_id: item.produto_id,
+      produto_nome: item.produto?.nome || 'Produto não encontrado',
+      quantidade: item.quantidade,
+      preco_unitario_original: item.preco_original || 0,
+      margem_simulada: item.margem_simulada || null,
+      preco_unitario_final: item.preco_simulado || item.preco_original || 0,
+      valor_total: (item.preco_simulado || item.preco_original || 0) * item.quantidade,
+      custo_total: item.produto?.custoTotal || 0,
+      lucro_item: ((item.preco_simulado || item.preco_original || 0) - (item.produto?.custoTotal || 0)) * item.quantidade,
+      eh_brinde: item.eh_brinde || false,
+      conta_como_um_produto: item.conta_como_um_produto || false
+    }));
+
+    await VendaItem.bulkCreate(itensParaCriar);
+
+    // Buscar venda completa atualizada
+    const vendaCompleta = await VendaCabecalho.findByPk(id, {
+      include: [{
+        model: VendaItem,
+        as: 'itens',
+        include: [{
+          model: Produto,
+          as: 'produto',
+          attributes: ['id', 'nome', 'imagemUrl', 'custoTotal']
+        }]
+      }]
     });
 
-  } catch (error) {
-    console.error('Erro ao criar venda:', error);
-
-    if (error.name === 'SequelizeValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: error.errors.map(err => err.message)
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
-    });
-  }
-};
-
-/**
- * PUT /api/vendas/:id - Atualizar venda
- */
-const atualizarVenda = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const dadosAtualizacao = req.body;
-
-    const venda = await Venda.findByPk(id);
-
-    if (!venda) {
-      return res.status(404).json({
-        success: false,
-        error: 'Venda não encontrada'
-      });
-    }
-
-    // Preparar dados para atualização
-    const dadosLimpos = { ...dadosAtualizacao };
-    
-    if (dadosLimpos.cliente) dadosLimpos.cliente = dadosLimpos.cliente.trim();
-    if (dadosLimpos.observacoes) dadosLimpos.observacoes = dadosLimpos.observacoes.trim();
-
-    // Recalcular se mudou preço ou quantidade
-    if (dadosLimpos.precoUnitario !== undefined || dadosLimpos.quantidade !== undefined) {
-      const novoPreco = parseFloat(dadosLimpos.precoUnitario || venda.precoUnitario);
-      const novaQuantidade = parseInt(dadosLimpos.quantidade || venda.quantidade);
-      
-      dadosLimpos.valorTotal = novoPreco * novaQuantidade;
-      dadosLimpos.lucroReal = dadosLimpos.valorTotal - (parseFloat(venda.custoTotalProduto) / parseInt(venda.quantidade) * novaQuantidade);
-    }
-
-    await venda.update(dadosLimpos);
-    await venda.reload();
-
-    res.json({
-      success: true,
-      message: 'Venda atualizada com sucesso',
-      data: venda
-    });
-
+    res.json(vendaCompleta);
   } catch (error) {
     console.error('Erro ao atualizar venda:', error);
-
-    if (error.name === 'SequelizeValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: error.errors.map(err => err.message)
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
     });
   }
 };
 
 /**
- * DELETE /api/vendas/:id - Excluir venda (reverter estoque)
+ * Finalizar venda (mudar status para finalizada)
  */
-const excluirVenda = async (req, res) => {
+const finalizar = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reverter_estoque = 'true' } = req.query;
-
-    const venda = await Venda.findByPk(id);
-
+    
+    const venda = await VendaCabecalho.findByPk(id);
+    
     if (!venda) {
-      return res.status(404).json({
-        success: false,
-        error: 'Venda não encontrada'
+      return res.status(404).json({ error: 'Venda não encontrada' });
+    }
+    
+    if (venda.status === 'finalizada') {
+      return res.status(400).json({ error: 'Venda já está finalizada' });
+    }
+    
+    if (venda.status === 'cancelada') {
+      return res.status(400).json({ error: 'Não é possível finalizar uma venda cancelada' });
+    }
+    
+    await venda.update({ status: 'finalizada' });
+    
+    res.json({ message: 'Venda finalizada com sucesso', venda });
+  } catch (error) {
+    console.error('Erro ao finalizar venda:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+};
+
+/**
+ * Cancelar venda
+ */
+const cancelar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { motivo } = req.body;
+    
+    const venda = await VendaCabecalho.findByPk(id);
+    
+    if (!venda) {
+      return res.status(404).json({ error: 'Venda não encontrada' });
+    }
+    
+    if (venda.status === 'cancelada') {
+      return res.status(400).json({ error: 'Venda já está cancelada' });
+    }
+    
+    const observacoesAtualizadas = venda.observacoes 
+      ? `${venda.observacoes}\n\n[CANCELAMENTO] ${motivo || 'Sem motivo informado'}`
+      : `[CANCELAMENTO] ${motivo || 'Sem motivo informado'}`;
+    
+    await venda.update({ 
+      status: 'cancelada',
+      observacoes: observacoesAtualizadas
+    });
+    
+    res.json({ message: 'Venda cancelada com sucesso', venda });
+  } catch (error) {
+    console.error('Erro ao cancelar venda:', error);
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
+    });
+  }
+};
+
+// Excluir venda
+const excluir = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const venda = await VendaCabecalho.findByPk(id);
+    
+    if (!venda) {
+      return res.status(404).json({ error: 'Venda não encontrada' });
+    }
+
+    // Só permite excluir vendas em rascunho ou finalizadas (não canceladas)
+    if (venda.status === 'cancelada') {
+      return res.status(400).json({ 
+        error: 'Não é possível excluir vendas canceladas' 
       });
     }
 
-    // Reverter estoque se solicitado e tiver snapshot dos insumos
-    if (reverter_estoque === 'true' && venda.insumosUtilizados) {
-      const insumosUtilizados = venda.insumosUtilizados;
-      
-      for (const insumoUtilizado of insumosUtilizados) {
-        const insumo = await Insumo.findByPk(insumoUtilizado.id);
-        
-        if (insumo) {
-          const quantidadeRetornar = parseFloat(insumoUtilizado.quantidade) * parseInt(venda.quantidade);
-          const novoEstoque = parseFloat(insumo.estoqueAtual) + quantidadeRetornar;
-          
-          await insumo.update({ estoqueAtual: novoEstoque });
-        }
-      }
-    }
+    // Excluir itens da venda primeiro (por causa da FK)
+    await VendaItem.destroy({
+      where: { venda_cabecalho_id: id }
+    });
 
+    // Excluir a venda
     await venda.destroy();
 
-    res.json({
-      success: true,
-      message: `Venda excluída${reverter_estoque === 'true' ? ' e estoque revertido' : ''} com sucesso`
+    res.json({ 
+      message: 'Venda excluída com sucesso',
+      vendaId: id 
     });
-
   } catch (error) {
     console.error('Erro ao excluir venda:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
+    res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      details: error.message 
     });
   }
 };
 
-/**
- * GET /api/vendas/relatorio/periodo - Relatório de vendas por período
- */
-const relatorioVendasPeriodo = async (req, res) => {
-  try {
-    const {
-      data_inicio,
-      data_fim,
-      agrupar_por = 'mes' // 'dia', 'semana', 'mes'
-    } = req.query;
-
-    const filtros = {};
-
-    // Filtro por período
-    if (data_inicio || data_fim) {
-      filtros.dataVenda = {};
-      if (data_inicio) filtros.dataVenda[Op.gte] = data_inicio;
-      if (data_fim) filtros.dataVenda[Op.lte] = data_fim;
-    }
-
-    const vendas = await Venda.findAll({
-      where: filtros,
-      order: [['dataVenda', 'ASC']]
-    });
-
-    // Agrupar vendas por período
-    const vendasAgrupadas = {};
-    
-    vendas.forEach(venda => {
-      const data = new Date(venda.dataVenda);
-      let chave;
-
-      switch (agrupar_por) {
-        case 'dia':
-          chave = data.toISOString().split('T')[0];
-          break;
-        case 'semana':
-          const inicioSemana = new Date(data);
-          inicioSemana.setDate(data.getDate() - data.getDay());
-          chave = inicioSemana.toISOString().split('T')[0];
-          break;
-        case 'mes':
-        default:
-          chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-          break;
-      }
-
-      if (!vendasAgrupadas[chave]) {
-        vendasAgrupadas[chave] = {
-          periodo: chave,
-          totalVendas: 0,
-          quantidadeItens: 0,
-          faturamento: 0,
-          lucro: 0,
-          vendas: []
-        };
-      }
-
-      vendasAgrupadas[chave].totalVendas++;
-      vendasAgrupadas[chave].quantidadeItens += parseInt(venda.quantidade);
-      vendasAgrupadas[chave].faturamento += parseFloat(venda.valorTotal);
-      vendasAgrupadas[chave].lucro += parseFloat(venda.lucroReal);
-      vendasAgrupadas[chave].vendas.push(venda);
-    });
-
-    // Converter para array e ordenar
-    const relatorio = Object.values(vendasAgrupadas).sort((a, b) => 
-      a.periodo.localeCompare(b.periodo)
-    );
-
-    // Estatísticas gerais
-    const stats = {
-      totalPeriodos: relatorio.length,
-      totalVendas: vendas.length,
-      faturamentoTotal: vendas.reduce((total, venda) => 
-        total + parseFloat(venda.valorTotal), 0
-      ),
-      lucroTotal: vendas.reduce((total, venda) => 
-        total + parseFloat(venda.lucroReal), 0
-      ),
-      ticketMedio: vendas.length > 0 ? 
-        vendas.reduce((total, venda) => total + parseFloat(venda.valorTotal), 0) / vendas.length : 0
-    };
-
-    res.json({
-      success: true,
-      data: relatorio,
-      stats,
-      filtros: { data_inicio, data_fim, agrupar_por }
-    });
-
-  } catch (error) {
-    console.error('Erro ao gerar relatório de vendas:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
-    });
-  }
-};
-
-/**
- * GET /api/vendas/produtos/ranking - Ranking de produtos mais vendidos
- */
-const rankingProdutos = async (req, res) => {
-  try {
-    const {
-      data_inicio,
-      data_fim,
-      limite = 10
-    } = req.query;
-
-    const filtros = {};
-
-    // Filtro por período
-    if (data_inicio || data_fim) {
-      filtros.dataVenda = {};
-      if (data_inicio) filtros.dataVenda[Op.gte] = data_inicio;
-      if (data_fim) filtros.dataVenda[Op.lte] = data_fim;
-    }
-
-    const vendas = await Venda.findAll({
-      where: filtros,
-      order: [['dataVenda', 'DESC']]
-    });
-
-    // Agrupar por produto
-    const produtosRanking = {};
-
-    vendas.forEach(venda => {
-      const produtoId = venda.produtoId;
-      
-      if (!produtosRanking[produtoId]) {
-        produtosRanking[produtoId] = {
-          produtoId,
-          produtoNome: venda.produtoNome,
-          totalVendas: 0,
-          quantidadeVendida: 0,
-          faturamento: 0,
-          lucro: 0,
-          precoMedio: 0
-        };
-      }
-
-      produtosRanking[produtoId].totalVendas++;
-      produtosRanking[produtoId].quantidadeVendida += parseInt(venda.quantidade);
-      produtosRanking[produtoId].faturamento += parseFloat(venda.valorTotal);
-      produtosRanking[produtoId].lucro += parseFloat(venda.lucroReal);
-    });
-
-    // Calcular preço médio e converter para array
-    const ranking = Object.values(produtosRanking).map(produto => ({
-      ...produto,
-      precoMedio: produto.faturamento / produto.quantidadeVendida
-    }));
-
-    // Ordenar por quantidade vendida (decrescente)
-    ranking.sort((a, b) => b.quantidadeVendida - a.quantidadeVendida);
-
-    // Limitar resultados
-    const rankingLimitado = ranking.slice(0, parseInt(limite));
-
-    res.json({
-      success: true,
-      data: rankingLimitado,
-      total: ranking.length,
-      filtros: { data_inicio, data_fim, limite }
-    });
-
-  } catch (error) {
-    console.error('Erro ao gerar ranking de produtos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
-    });
-  }
-};
-
-/**
- * GET /api/vendas/clientes/ranking - Ranking de clientes que mais compraram
- */
-const rankingClientes = async (req, res) => {
-  try {
-    const {
-      data_inicio,
-      data_fim,
-      limite = 10
-    } = req.query;
-
-    const filtros = {};
-
-    // Filtro por período
-    if (data_inicio || data_fim) {
-      filtros.dataVenda = {};
-      if (data_inicio) filtros.dataVenda[Op.gte] = data_inicio;
-      if (data_fim) filtros.dataVenda[Op.lte] = data_fim;
-    }
-
-    // Só vendas com cliente informado
-    filtros.cliente = { [Op.not]: null, [Op.ne]: '' };
-
-    const vendas = await Venda.findAll({
-      where: filtros,
-      order: [['dataVenda', 'DESC']]
-    });
-
-    // Agrupar por cliente
-    const clientesRanking = {};
-
-    vendas.forEach(venda => {
-      const cliente = venda.cliente.trim().toLowerCase();
-      
-      if (!clientesRanking[cliente]) {
-        clientesRanking[cliente] = {
-          cliente: venda.cliente, // Nome original
-          totalCompras: 0,
-          quantidadeItens: 0,
-          valorGasto: 0,
-          ultimaCompra: venda.dataVenda,
-          ticketMedio: 0
-        };
-      }
-
-      clientesRanking[cliente].totalCompras++;
-      clientesRanking[cliente].quantidadeItens += parseInt(venda.quantidade);
-      clientesRanking[cliente].valorGasto += parseFloat(venda.valorTotal);
-      
-      // Atualizar última compra se for mais recente
-      if (new Date(venda.dataVenda) > new Date(clientesRanking[cliente].ultimaCompra)) {
-        clientesRanking[cliente].ultimaCompra = venda.dataVenda;
-      }
-    });
-
-    // Calcular ticket médio e converter para array
-    const ranking = Object.values(clientesRanking).map(cliente => ({
-      ...cliente,
-      ticketMedio: cliente.valorGasto / cliente.totalCompras
-    }));
-
-    // Ordenar por valor gasto (decrescente)
-    ranking.sort((a, b) => b.valorGasto - a.valorGasto);
-
-    // Limitar resultados
-    const rankingLimitado = ranking.slice(0, parseInt(limite));
-
-    res.json({
-      success: true,
-      data: rankingLimitado,
-      total: ranking.length,
-      filtros: { data_inicio, data_fim, limite }
-    });
-
-  } catch (error) {
-    console.error('Erro ao gerar ranking de clientes:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      message: error.message
-    });
-  }
-};
-
-// Exportar todas as funções
 module.exports = {
-  listarVendas,
-  buscarVendaPorId,
-  criarVenda,
-  atualizarVenda,
-  excluirVenda,
-  relatorioVendasPeriodo,
-  rankingProdutos,
-  rankingClientes
+  listar,
+  buscarPorId,
+  criar,
+  atualizar,
+  simularPrecos,
+  finalizar,
+  cancelar,
+  excluir
 };

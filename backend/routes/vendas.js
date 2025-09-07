@@ -1,27 +1,29 @@
-// routes/vendas.js
 const express = require('express');
 const router = express.Router();
-const {
-  listarVendas,
-  buscarVendaPorId,
-  criarVenda,
-  atualizarVenda,
-  excluirVenda,
-  relatorioVendasPeriodo,
-  rankingProdutos,
-  rankingClientes
-} = require('../controllers/vendaController');
+const vendaController = require('../controllers/vendaController');
 
-// Rotas principais
-router.get('/', listarVendas);
-router.post('/', criarVenda);
-router.get('/relatorio/periodo', relatorioVendasPeriodo);
-router.get('/produtos/ranking', rankingProdutos);
-router.get('/clientes/ranking', rankingClientes);
-router.get('/:id', buscarVendaPorId);
-router.put('/:id', atualizarVenda);
-router.delete('/:id', excluirVenda);
+// Listar vendas com paginação e filtros
+router.get('/', vendaController.listar);
+
+// Buscar venda por ID
+router.get('/:id', vendaController.buscarPorId);
+
+// Criar nova venda
+router.post('/', vendaController.criar);
+
+// Atualizar venda existente
+router.put('/:id', vendaController.atualizar);
+
+// Simular preços em tempo real
+router.post('/simular-precos', vendaController.simularPrecos);
+
+// Finalizar venda
+router.put('/:id/finalizar', vendaController.finalizar);
+
+// Cancelar venda
+router.put('/:id/cancelar', vendaController.cancelar);
+
+// Excluir venda
+router.delete('/:id', vendaController.excluir);
 
 module.exports = router;
-
-// ================================================

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
 import { formatarMoeda, formatarNumero } from '../utils/formatarMoeda';
 import { estatisticaService } from '../services/estatisticas';
-import { vendaService } from '../services/vendas';
+import vendasService from '../services/vendas';
 import { insumoService } from '../services/insumos';
 
 const Dashboard = () => {
@@ -28,7 +28,7 @@ const Dashboard = () => {
         estoqueBaixoData
       ] = await Promise.all([
         estatisticaService.metricas(),
-        vendaService.buscarRecentes(5),
+        vendasService.buscarRecentes(5),
         insumoService.buscarEstoqueBaixo()
       ]);
 
