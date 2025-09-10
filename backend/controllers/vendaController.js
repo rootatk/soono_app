@@ -135,7 +135,8 @@ const buscarPorId = async (req, res) => {
         include: [{
           model: Produto,
           as: 'produto',
-          attributes: ['id', 'nome', 'imagemUrl', 'custoTotal']
+          attributes: ['id', 'nome', 'imagemUrl', 'custoTotal'],
+          required: false // LEFT JOIN - permite itens sem produto associado
         }]
       }]
     });
@@ -611,12 +612,8 @@ const excluir = async (req, res) => {
       return res.status(404).json({ error: 'Venda não encontrada' });
     }
 
-    // Só permite excluir vendas em rascunho ou finalizadas (não canceladas)
-    if (venda.status === 'cancelada') {
-      return res.status(400).json({ 
-        error: 'Não é possível excluir vendas canceladas' 
-      });
-    }
+    // Permite excluir vendas em qualquer status (rascunho, finalizada ou cancelada)
+    // Vendas canceladas podem ser excluídas para limpeza do histórico
 
     // Excluir itens da venda primeiro (por causa da FK)
     await VendaItem.destroy({

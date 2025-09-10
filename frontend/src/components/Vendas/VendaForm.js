@@ -32,7 +32,6 @@ const VendaForm = () => {
   const [produtoSelecionado, setProdutoSelecionado] = useState(null);
   const [quantidade, setQuantidade] = useState(1);
   const [margemSimulada, setMargemSimulada] = useState('');
-  const [ehBrinde, setEhBrinde] = useState(false);
   
   // Simulação em tempo real
   const [simulacao, setSimulacao] = useState(null);
@@ -60,7 +59,6 @@ const VendaForm = () => {
       produto_nome: produto.nome,
       quantidade: produtoData.quantidade || 1,
       margem_simulada: produtoData.margem_simulada || null,
-      eh_brinde: produtoData.eh_brinde || false,
       preco_original: parseFloat(produto.precoVenda),
       preco_simulado: produto.precoVenda // Será recalculado na simulação
     };
@@ -102,13 +100,12 @@ const VendaForm = () => {
       // Converter itens da venda para o formato do formulário
       const itensConvertidos = vendaData.itens?.map(item => ({
         produto_id: item.produto_id,
-        produto_nome: item.produto_nome, // Campo necessário para a tabela
+        produto_nome: item.produto?.nome || item.produto_nome || 'Produto não encontrado', // Priorizar nome do produto relacionado
         quantidade: item.quantidade,
         margem_simulada: item.margem_simulada || null, // Preservar a margem original (null se não foi customizada)
-        eh_brinde: item.eh_brinde || false,
         produto: item.produto || {
           id: item.produto_id,
-          nome: item.produto_nome,
+          nome: item.produto?.nome || item.produto_nome || 'Produto não encontrado',
           custoTotal: item.custo_total,
           precoVenda: item.preco_unitario_original
         },
@@ -233,7 +230,6 @@ const VendaForm = () => {
     setProdutoSelecionado(produto);
     setQuantidade(1);
     setMargemSimulada('');
-    setEhBrinde(false);
     setSimulacao(null);
     setShowModalProduto(true);
   };
@@ -245,8 +241,7 @@ const VendaForm = () => {
       const itensSimular = [{
         produto_id: produtoSelecionado.id,
         quantidade: quantidade,
-        margem_simulada: margemSimulada || null,
-        eh_brinde: ehBrinde
+        margem_simulada: margemSimulada || null
       }];
       
       const response = await vendasService.simularPrecos(itensSimular);
@@ -264,7 +259,6 @@ const VendaForm = () => {
       produto_nome: produtoSelecionado.nome,
       quantidade: parseInt(quantidade),
       margem_simulada: margemSimulada ? parseFloat(margemSimulada) : null,
-      eh_brinde: ehBrinde,
       // Dados temporários para exibição (serão recalculados no backend)
       preco_original: parseFloat(produtoSelecionado.precoVenda),
       preco_simulado: simulacao ? simulacao.preco_simulado : produtoSelecionado.precoVenda
@@ -454,7 +448,6 @@ const VendaForm = () => {
                         <th>Preço Unit.</th>
                         <th>Margem</th>
                         <th>Subtotal</th>
-                        <th>Tipo</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
@@ -493,13 +486,6 @@ const VendaForm = () => {
                             <strong>
                               {formatarMoeda(item.valor_total || (item.preco_simulado || item.preco_original || 0) * item.quantidade)}
                             </strong>
-                          </td>
-                          <td>
-                            {item.eh_brinde ? (
-                              <Badge bg="success">Brinde</Badge>
-                            ) : (
-                              <Badge bg="secondary">Normal</Badge>
-                            )}
                           </td>
                           <td>
                             <Button
@@ -690,18 +676,6 @@ const VendaForm = () => {
                 </InputGroup>
                 <Form.Text className="text-muted">
                   Deixe vazio para usar o preço original
-                </Form.Text>
-              </Form.Group>
-              
-              <Form.Group className="mb-3">
-                <Form.Check
-                  type="checkbox"
-                  label="Este produto é um brinde"
-                  checked={ehBrinde}
-                  onChange={(e) => setEhBrinde(e.target.checked)}
-                />
-                <Form.Text className="text-muted">
-                  Brindes contam como 1 produto para desconto combo
                 </Form.Text>
               </Form.Group>
             </Col>

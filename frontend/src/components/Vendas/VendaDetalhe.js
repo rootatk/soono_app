@@ -191,7 +191,7 @@ const VendaDetalhe = () => {
                 </>
               )}
               
-              {(venda.status === 'rascunho' || venda.status === 'finalizada') && (
+              {(venda.status === 'rascunho' || venda.status === 'finalizada' || venda.status === 'cancelada') && (
                 <Button 
                   variant="danger" 
                   onClick={() => setShowDeleteModal(true)}
@@ -308,9 +308,14 @@ const VendaDetalhe = () => {
                       <th>Preço Original</th>
                       <th>Preço Final</th>
                       <th>Margem</th>
-                      <th>Subtotal</th>
-                      <th>Lucro</th>
-                      <th>Tipo</th>
+                      <th className="text-primary">
+                        <i className="fas fa-calculator me-1"></i>
+                        Subtotal
+                      </th>
+                      <th className="text-success">
+                        <i className="fas fa-chart-line me-1"></i>
+                        Lucro
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -373,23 +378,15 @@ const VendaDetalhe = () => {
                         </td>
                         <td>
                           <strong className="text-primary">
+                            <i className="fas fa-calculator me-1"></i>
                             {formatarMoeda(parseFloat(item.valor_total) || 0)}
                           </strong>
                         </td>
                         <td>
-                          <span className="text-success">
+                          <span className="text-success fw-bold">
+                            <i className="fas fa-chart-line me-1"></i>
                             {formatarMoeda(parseFloat(item.lucro_item) || 0)}
                           </span>
-                        </td>
-                        <td>
-                          {item.eh_brinde ? (
-                            <Badge bg="warning">
-                              <i className="fas fa-gift me-1"></i>
-                              Brinde
-                            </Badge>
-                          ) : (
-                            <Badge bg="primary">Venda</Badge>
-                          )}
                         </td>
                       </tr>
                     ))}
@@ -398,39 +395,44 @@ const VendaDetalhe = () => {
                     <tr className="table-light">
                       <th colSpan="5">SUBTOTAL (SEM DESCONTO)</th>
                       <th className="text-primary">
-                        {formatarMoeda(parseFloat(venda.subtotal) || 0)}
+                        <i className="fas fa-calculator me-1"></i>
+                        <strong>{formatarMoeda(parseFloat(venda.subtotal) || 0)}</strong>
                       </th>
-                      <th className="text-primary">
-                        {(() => {
-                          // Calcular lucro antes do desconto (soma dos lucros individuais)
-                          const lucroIndividual = venda.itens?.reduce((acc, item) => 
-                            acc + (parseFloat(item.lucro_item) || 0), 0) || 0;
-                          return formatarMoeda(lucroIndividual);
-                        })()}
+                      <th className="text-success">
+                        <i className="fas fa-chart-line me-1"></i>
+                        <strong>
+                          {(() => {
+                            // Calcular lucro antes do desconto (soma dos lucros individuais)
+                            const lucroIndividual = venda.itens?.reduce((acc, item) => 
+                              acc + (parseFloat(item.lucro_item) || 0), 0) || 0;
+                            return formatarMoeda(lucroIndividual);
+                          })()}
+                        </strong>
                       </th>
-                      <th></th>
                     </tr>
                     {(parseFloat(venda.desconto_valor) || 0) > 0 && (
                       <tr className="table-warning">
                         <th colSpan="5">DESCONTO ({(parseFloat(venda.desconto_percentual) || 0).toFixed(1)}%)</th>
                         <th className="text-warning">
-                          - {formatarMoeda(parseFloat(venda.desconto_valor) || 0)}
+                          <i className="fas fa-minus-circle me-1"></i>
+                          <strong>- {formatarMoeda(parseFloat(venda.desconto_valor) || 0)}</strong>
                         </th>
                         <th className="text-warning">
-                          - {formatarMoeda(parseFloat(venda.desconto_valor) || 0)}
+                          <i className="fas fa-minus-circle me-1"></i>
+                          <strong>- {formatarMoeda(parseFloat(venda.desconto_valor) || 0)}</strong>
                         </th>
-                        <th></th>
                       </tr>
                     )}
                     <tr className="table-success">
                       <th colSpan="5">TOTAL FINAL</th>
-                      <th className="text-success">
-                        <strong>{formatarMoeda(parseFloat(venda.total) || 0)}</strong>
+                      <th className="text-dark bg-primary">
+                        <i className="fas fa-money-bill-wave me-1 text-white"></i>
+                        <strong className="text-white">{formatarMoeda(parseFloat(venda.total) || 0)}</strong>
                       </th>
-                      <th className="text-success">
-                        <strong>{formatarMoeda(parseFloat(venda.lucro_total) || 0)}</strong>
+                      <th className="text-dark bg-success">
+                        <i className="fas fa-chart-pie me-1 text-white"></i>
+                        <strong className="text-white">{formatarMoeda(parseFloat(venda.lucro_total) || 0)}</strong>
                       </th>
-                      <th></th>
                     </tr>
                   </tfoot>
                 </Table>
@@ -454,6 +456,12 @@ const VendaDetalhe = () => {
                 <i className="fas fa-exclamation-circle me-2"></i>
                 <strong>Atenção:</strong> Esta é uma venda finalizada! 
                 A exclusão afetará seus relatórios e estatísticas financeiras.
+              </div>
+            ) : venda.status === 'cancelada' ? (
+              <div className="alert alert-info mt-3">
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>Venda Cancelada:</strong> Esta venda já foi cancelada e pode ser excluída 
+                para limpar o histórico sem afetar relatórios ativos.
               </div>
             ) : (
               <p className="text-muted">

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, Row, Col, Card, Button, Table, Badge, 
-  Form, InputGroup, Alert, Spinner, Pagination 
+  Form, Alert, Spinner, Pagination, Modal 
 } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import vendasService from '../../services/vendas';
@@ -25,11 +25,13 @@ const VendaList = () => {
     dataFim: ''
   });
 
-  useEffect(() => {
-    carregarVendas();
-  }, [paginaAtual, filtros]);
+  // Modal de cancelamento
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [vendaParaCancelar, setVendaParaCancelar] = useState(null);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
+  const [cancelando, setCancelando] = useState(false);
 
-  const carregarVendas = async () => {
+  const carregarVendas = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -47,7 +49,11 @@ const VendaList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginaAtual, filtros]);
+
+  useEffect(() => {
+    carregarVendas();
+  }, [carregarVendas]);
 
   const handleFiltroChange = (campo, valor) => {
     setFiltros(prev => ({
@@ -89,6 +95,38 @@ const VendaList = () => {
   const calcularQuantidadeItens = (itens) => {
     if (!itens || !Array.isArray(itens)) return 0;
     return itens.reduce((total, item) => total + item.quantidade, 0);
+  };
+
+  const abrirModalCancelamento = (venda) => {
+    setVendaParaCancelar(venda);
+    setMotivoCancelamento('');
+    setShowCancelModal(true);
+  };
+
+  const fecharModalCancelamento = () => {
+    setShowCancelModal(false);
+    setVendaParaCancelar(null);
+    setMotivoCancelamento('');
+    setCancelando(false);
+  };
+
+  const confirmarCancelamento = async () => {
+    if (!motivoCancelamento.trim()) {
+      setError('Por favor, informe o motivo do cancelamento.');
+      return;
+    }
+
+    try {
+      setCancelando(true);
+      await vendasService.cancelar(vendaParaCancelar.id, motivoCancelamento);
+      fecharModalCancelamento();
+      carregarVendas();
+      setError('');
+    } catch (err) {
+      setError('Erro ao cancelar venda: ' + err.message);
+    } finally {
+      setCancelando(false);
+    }
   };
 
   const renderPaginacao = () => {
@@ -334,8 +372,18 @@ const VendaList = () => {
                                 variant="outline-success"
                                 size="sm"
                                 onClick={() => navigate(`/vendas/${venda.id}/editar`)}
+                                className="me-1"
                               >
                                 <i className="fas fa-edit"></i>
+                              </Button>
+                            )}
+                            {(venda.status === 'rascunho' || venda.status === 'finalizada') && (
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => abrirModalCancelamento(venda)}
+                              >
+                                <i className="fas fa-ban"></i>
                               </Button>
                             )}
                           </td>
@@ -351,6 +399,62 @@ const VendaList = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Modal de Cancelamento */}
+      <Modal show={showCancelModal} onHide={fecharModalCancelamento}>
+        <Modal.Header closeButton>
+          <Modal.Title>Cancelar Venda</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>
+            Tem certeza que deseja cancelar a venda <strong>{vendaParaCancelar?.codigo}</strong>?
+          </p>
+          <Form.Group className="mb-3">
+            <Form.Label>Motivo do cancelamento *</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={motivoCancelamento}
+              onChange={(e) => setMotivoCancelamento(e.target.value)}
+              placeholder="Informe o motivo do cancelamento..."
+              disabled={cancelando}
+            />
+          </Form.Group>
+          <div className="text-muted">
+            <small>* Campo obrigatório</small>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={fecharModalCancelamento}
+            disabled={cancelando}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={confirmarCancelamento}
+            disabled={cancelando || !motivoCancelamento.trim()}
+          >
+            {cancelando ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="me-2"
+                />
+                Cancelando...
+              </>
+            ) : (
+              'Confirmar Cancelamento'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
