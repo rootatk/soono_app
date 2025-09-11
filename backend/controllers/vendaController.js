@@ -55,7 +55,8 @@ const listar = async (req, res) => {
       }],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
-      offset: parseInt(offset)
+      offset: parseInt(offset),
+      distinct: true
     });
 
     // Recalcular totais para cada venda
