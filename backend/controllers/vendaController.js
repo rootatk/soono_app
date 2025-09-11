@@ -475,8 +475,37 @@ const atualizar = async (req, res) => {
       where: { venda_cabecalho_id: id }
     });
 
-    // Calcular totais dos novos itens
-    const totaisCalculados = calcularTotaisVenda(itens);
+    // Buscar produtos para obter custos atualizados
+    const produtoIds = itens.map(item => item.produto_id);
+    const produtos = await Produto.findAll({
+      where: { id: produtoIds },
+      attributes: ['id', 'nome', 'custoTotal', 'precoVenda']
+    });
+
+    const produtosMap = {};
+    produtos.forEach(produto => {
+      produtosMap[produto.id] = produto;
+    });
+
+    // Calcular totais dos novos itens com custos corretos
+    const itensComCustos = itens.map(item => {
+      const produto = produtosMap[item.produto_id];
+      if (!produto) {
+        throw new Error(`Produto ID ${item.produto_id} não encontrado`);
+      }
+
+      const quantidade = parseInt(item.quantidade) || 1;
+      const custoUnitario = parseFloat(produto.custoTotal) || 0;
+      const custoTotal = custoUnitario * quantidade;
+
+      return {
+        ...item,
+        custoTotal: custoTotal,
+        produto: produto
+      };
+    });
+
+    const totaisCalculados = calcularTotaisVenda(itensComCustos);
 
     // Atualizar cabeçalho da venda
     await vendaExistente.update({
@@ -490,21 +519,31 @@ const atualizar = async (req, res) => {
       observacoes
     });
 
-    // Criar novos itens
-    const itensParaCriar = itens.map(item => ({
-      venda_cabecalho_id: id,
-      produto_id: item.produto_id,
-      produto_nome: item.produto?.nome || 'Produto não encontrado',
-      quantidade: item.quantidade,
-      preco_unitario_original: item.preco_original || 0,
-      margem_simulada: item.margem_simulada || null,
-      preco_unitario_final: item.preco_simulado || item.preco_original || 0,
-      valor_total: (item.preco_simulado || item.preco_original || 0) * item.quantidade,
-      custo_total: item.produto?.custoTotal || 0,
-      lucro_item: ((item.preco_simulado || item.preco_original || 0) - (item.produto?.custoTotal || 0)) * item.quantidade,
-      eh_brinde: item.eh_brinde || false,
-      conta_como_um_produto: item.conta_como_um_produto || false
-    }));
+    // Criar novos itens com custos corretos
+    const itensParaCriar = itensComCustos.map(item => {
+      const produto = produtosMap[item.produto_id];
+      const quantidade = parseInt(item.quantidade) || 1;
+      const custoUnitario = parseFloat(produto.custoTotal) || 0;
+      const custoTotal = custoUnitario * quantidade;
+      const precoFinal = item.preco_simulado || item.preco_original || 0;
+      const valorTotal = precoFinal * quantidade;
+      const lucroItem = valorTotal - custoTotal;
+
+      return {
+        venda_cabecalho_id: id,
+        produto_id: item.produto_id,
+        produto_nome: produto.nome,
+        quantidade: quantidade,
+        preco_unitario_original: item.preco_original || produto.precoVenda || 0,
+        margem_simulada: item.margem_simulada || null,
+        preco_unitario_final: precoFinal,
+        valor_total: valorTotal,
+        custo_total: custoTotal,
+        lucro_item: lucroItem,
+        eh_brinde: item.eh_brinde || false,
+        conta_como_um_produto: item.conta_como_um_produto || false
+      };
+    });
 
     await VendaItem.bulkCreate(itensParaCriar);
 

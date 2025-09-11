@@ -383,10 +383,10 @@ const ProdutoList = () => {
                           <th style={{ width: '5%' }}></th>
                           <th>Produto</th>
                           <th>Categoria</th>
-                          <th className="text-end">Custo</th>
-                          <th className="text-end">Preço</th>
+                          <th className="text-center">Custo</th>
+                          <th className="text-center">Preço</th>
                           <th className="text-center">Margem</th>
-                          <th className="text-end">Ações</th>
+                          <th className="text-center">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -432,12 +432,12 @@ const ProdutoList = () => {
                               </td>
                               <td><strong>{produto.nome}</strong></td>
                               <td>{produto.categoria}</td>
-                              <td className="text-end">{formatarMoeda(produto.custoTotal)}</td>
-                              <td className="text-end text-success">{formatarMoeda(produto.precoVenda)}</td>
+                              <td className="text-center">{formatarMoeda(produto.custoTotal)}</td>
+                              <td className="text-center text-success">{formatarMoeda(produto.precoVenda)}</td>
                               <td className="text-center">
                                 <Badge bg={getVariantePreco(margem)}>{margem.toFixed(1)}%</Badge>
                               </td>
-                              <td className="text-end">
+                              <td className="text-center">
                                 <div className="btn-group">
                                   <Button variant="outline-primary" size="sm" onClick={() => navigate(`/produtos/${produto.id}`)} title="Ver detalhes"><i className="fas fa-eye"></i></Button>
                                   <Button variant="outline-warning" size="sm" onClick={() => navigate(`/produtos/${produto.id}/editar`)} title="Editar"><i className="fas fa-edit"></i></Button>

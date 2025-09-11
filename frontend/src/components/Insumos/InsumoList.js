@@ -468,10 +468,10 @@ const InsumoList = () => {
                       <th style={{ width: '5%' }}></th>
                       <th>Nome</th>
                       <th>Categoria</th>
-                      <th className="text-end">Custo Unit.</th>
+                      <th className="text-center">Custo Unit.</th>
                       <th className="text-center">Estoque</th>
                       <th className="text-center">Status</th>
-                      <th className="text-end">Ações</th>
+                      <th className="text-center">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -520,7 +520,7 @@ const InsumoList = () => {
                             {insumo.variacao && <span className="badge bg-secondary ms-2">{insumo.variacao}</span>}
                           </td>
                           <td>{insumo.categoria}</td>
-                          <td className="text-end">{formatarMoeda(insumo.custoUnitario)}</td>
+                          <td className="text-center">{formatarMoeda(insumo.custoUnitario)}</td>
                           <td className="text-center">{insumo.estoqueAtual} {insumo.unidade}</td>
                           <td className="text-center">
                             <span className={`badge bg-${alerta.classe}`}>
@@ -528,7 +528,7 @@ const InsumoList = () => {
                               {alerta.texto}
                             </span>
                           </td>
-                          <td className="text-end">
+                          <td className="text-center">
                             <div className="btn-group">
                               <button className="btn btn-outline-primary btn-sm" onClick={() => navigate(`/insumos/${insumo.id}`)} title="Ver detalhes"><i className="fas fa-eye"></i></button>
                               <button className="btn btn-outline-warning btn-sm" onClick={() => navigate(`/insumos/${insumo.id}/editar`)} title="Editar"><i className="fas fa-edit"></i></button>

@@ -72,6 +72,11 @@ const VendaDetalhe = () => {
     return new Date(dataString).toLocaleString('pt-BR');
   };
 
+  const calcularMargemGeral = (lucroTotal, valorTotal) => {
+    if (!valorTotal || valorTotal === 0) return 0;
+    return ((parseFloat(lucroTotal) / parseFloat(valorTotal)) * 100);
+  };
+
   if (loading) {
     return (
       <Container className="mt-4">
@@ -182,7 +187,7 @@ const VendaDetalhe = () => {
                 <>
                   <Button 
                     variant="primary" 
-                    onClick={() => navigate(`/vendas/editar/${id}`)}
+                    onClick={() => navigate(`/vendas/${id}/editar`)}
                     className="me-2"
                   >
                     <i className="fas fa-edit me-2"></i>
@@ -393,7 +398,18 @@ const VendaDetalhe = () => {
                   </tbody>
                   <tfoot>
                     <tr className="table-light">
-                      <th colSpan="5">SUBTOTAL (SEM DESCONTO)</th>
+                      <th colSpan="4">SUBTOTAL (SEM DESCONTO)</th>
+                      <th className="text-info">
+                        <i className="fas fa-percentage me-1"></i>
+                        <strong>
+                          {(() => {
+                            const lucroIndividual = venda.itens?.reduce((acc, item) => 
+                              acc + (parseFloat(item.lucro_item) || 0), 0) || 0;
+                            const margemGeral = calcularMargemGeral(lucroIndividual, venda.subtotal);
+                            return `${margemGeral.toFixed(1)}%`;
+                          })()}
+                        </strong>
+                      </th>
                       <th className="text-primary">
                         <i className="fas fa-calculator me-1"></i>
                         <strong>{formatarMoeda(parseFloat(venda.subtotal) || 0)}</strong>
@@ -424,14 +440,22 @@ const VendaDetalhe = () => {
                       </tr>
                     )}
                     <tr className="table-success">
-                      <th colSpan="5">TOTAL FINAL</th>
+                      <th colSpan="4">TOTAL FINAL</th>
+                      <th className="text-dark bg-info">
+                        <i className="fas fa-percentage me-1 text-white"></i>
+                        <strong className="text-white">
+                          {calcularMargemGeral(venda.lucro_total, venda.total).toFixed(1)}%
+                        </strong>
+                      </th>
                       <th className="text-dark bg-primary">
                         <i className="fas fa-money-bill-wave me-1 text-white"></i>
                         <strong className="text-white">{formatarMoeda(parseFloat(venda.total) || 0)}</strong>
                       </th>
                       <th className="text-dark bg-success">
                         <i className="fas fa-chart-pie me-1 text-white"></i>
-                        <strong className="text-white">{formatarMoeda(parseFloat(venda.lucro_total) || 0)}</strong>
+                        <strong className="text-white">
+                          {formatarMoeda(parseFloat(venda.lucro_total) || 0)}
+                        </strong>
                       </th>
                     </tr>
                   </tfoot>

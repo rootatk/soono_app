@@ -97,6 +97,11 @@ const VendaList = () => {
     return itens.reduce((total, item) => total + item.quantidade, 0);
   };
 
+  const calcularMargemGeral = (lucroTotal, valorTotal) => {
+    if (!valorTotal || valorTotal === 0) return 0;
+    return ((parseFloat(lucroTotal) / parseFloat(valorTotal)) * 100);
+  };
+
   const abrirModalCancelamento = (venda) => {
     setVendaParaCancelar(venda);
     setMotivoCancelamento('');
@@ -323,6 +328,7 @@ const VendaList = () => {
                         <th>Subtotal</th>
                         <th>Desconto</th>
                         <th>Total</th>
+                        <th>Margem</th>
                         <th>Status</th>
                         <th>Ações</th>
                       </tr>
@@ -356,6 +362,12 @@ const VendaList = () => {
                           </td>
                           <td>
                             <strong>{formatarMoeda(venda.total)}</strong>
+                          </td>
+                          <td className="text-center">
+                            <Badge bg="success">
+                              <i className="fas fa-percentage me-1"></i>
+                              {calcularMargemGeral(venda.lucro_total, venda.total).toFixed(1)}%
+                            </Badge>
                           </td>
                           <td>{getStatusBadge(venda.status)}</td>
                           <td>
