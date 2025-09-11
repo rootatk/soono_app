@@ -59,6 +59,8 @@ const VendaForm = () => {
       produto_nome: produto.nome,
       quantidade: produtoData.quantidade || 1,
       margem_simulada: produtoData.margem_simulada || null,
+      // Anexar o produto completo para ter acesso aos dados como margemLucro
+      produto: produto,
       preco_original: parseFloat(produto.precoVenda),
       preco_simulado: produto.precoVenda // Será recalculado na simulação
     };
@@ -77,10 +79,10 @@ const VendaForm = () => {
 
   // Carregar dados da venda em modo de edição
   useEffect(() => {
-    if (isEditing && id) {
+    if (isEditing && id && produtos.length > 0) {
       carregarVendaParaEdicao();
     }
-  }, [isEditing, id]);
+  }, [isEditing, id, produtos]);
 
   const carregarVendaParaEdicao = async () => {
     try {
@@ -98,23 +100,35 @@ const VendaForm = () => {
       setObservacoes(vendaData.observacoes || '');
       
       // Converter itens da venda para o formato do formulário
-      const itensConvertidos = vendaData.itens?.map(item => ({
-        produto_id: item.produto_id,
-        produto_nome: item.produto?.nome || item.produto_nome || 'Produto não encontrado', // Priorizar nome do produto relacionado
-        quantidade: item.quantidade,
-        margem_simulada: item.margem_simulada || null, // Preservar a margem original (null se não foi customizada)
-        produto: item.produto || {
-          id: item.produto_id,
-          nome: item.produto?.nome || item.produto_nome || 'Produto não encontrado',
-          custoTotal: item.custo_total,
-          precoVenda: item.preco_unitario_original
-        },
-        // Preservar dados originais da venda
-        preco_original: item.preco_unitario_original,
-        preco_simulado: item.preco_unitario_final,
-        valor_total: item.valor_total,
-        margem_real: item.margem_simulada
-      })) || [];
+      console.log('Debug - produtos disponíveis:', produtos.length);
+      const itensConvertidos = vendaData.itens?.map(item => {
+        // Tentar encontrar o produto completo na lista de produtos carregados
+        const produtoCompleto = produtos.find(p => p.id === item.produto_id);
+        console.log(`Debug - Produto ${item.produto_id}:`, produtoCompleto ? 'encontrado' : 'não encontrado');
+        if (produtoCompleto) {
+          console.log('Debug - margemLucro:', produtoCompleto.margemLucro);
+        }
+        
+        return {
+          produto_id: item.produto_id,
+          produto_nome: item.produto?.nome || item.produto_nome || 'Produto não encontrado',
+          quantidade: item.quantidade,
+          margem_simulada: item.margem_simulada || null,
+          // Usar o produto completo se disponível, senão usar os dados da venda
+          produto: produtoCompleto || item.produto || {
+            id: item.produto_id,
+            nome: item.produto?.nome || item.produto_nome || 'Produto não encontrado',
+            custoTotal: item.custo_total,
+            precoVenda: item.preco_unitario_original,
+            margemLucro: 0 // Fallback se não conseguir encontrar o produto
+          },
+          // Preservar dados originais da venda
+          preco_original: item.preco_unitario_original,
+          preco_simulado: item.preco_unitario_final,
+          valor_total: item.valor_total,
+          margem_real: item.margem_simulada
+        };
+      }) || [];
       
       setItensVenda(itensConvertidos);
       
@@ -259,6 +273,8 @@ const VendaForm = () => {
       produto_nome: produtoSelecionado.nome,
       quantidade: parseInt(quantidade),
       margem_simulada: margemSimulada ? parseFloat(margemSimulada) : null,
+      // Anexar o produto completo para ter acesso aos dados como margemLucro
+      produto: produtoSelecionado,
       // Dados temporários para exibição (serão recalculados no backend)
       preco_original: parseFloat(produtoSelecionado.precoVenda),
       preco_simulado: simulacao ? simulacao.preco_simulado : produtoSelecionado.precoVenda
@@ -479,7 +495,7 @@ const VendaForm = () => {
                             ) : item.margem_simulada ? (
                               <Badge bg="primary">{item.margem_simulada}%</Badge>
                             ) : (
-                              <span className="text-muted">Original</span>
+                              <Badge bg="secondary">{(item.produto?.margemLucro || 0).toFixed(1)}%</Badge>
                             )}
                           </td>
                           <td>
@@ -690,6 +706,7 @@ const VendaForm = () => {
                     <p><strong>Nome:</strong> {produtoSelecionado.nome}</p>
                     <p><strong>Custo:</strong> {formatarMoeda(produtoSelecionado.custoTotal)}</p>
                     <p><strong>Preço Original:</strong> {formatarMoeda(produtoSelecionado.precoVenda)}</p>
+                    <p><strong>Margem Original:</strong> <Badge bg="secondary">{(produtoSelecionado.margemLucro || 0).toFixed(1)}%</Badge></p>
                     
                     {simulacao && (
                       <div className="mt-3 p-3 bg-light rounded">

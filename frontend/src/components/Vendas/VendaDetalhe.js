@@ -391,7 +391,7 @@ const VendaDetalhe = () => {
                           </strong>
                           {parseFloat(item.preco_unitario_original) !== parseFloat(item.preco_unitario_final) && (
                             <small className="text-success d-block">
-                              <i className="fas fa-arrow-down me-1"></i>
+                              <i className="fas fa-arrow-right me-1"></i>
                               Ajustado
                             </small>
                           )}
