@@ -310,6 +310,10 @@ const VendaDetalhe = () => {
                     <tr>
                       <th>Produto</th>
                       <th>Quantidade</th>
+                      <th className="text-warning">
+                        <i className="fas fa-dollar-sign me-1"></i>
+                        Custo
+                      </th>
                       <th>Preço Original</th>
                       <th>Preço Final</th>
                       <th>Margem</th>
@@ -346,6 +350,35 @@ const VendaDetalhe = () => {
                           <Badge bg="secondary">
                             {item.quantidade}x
                           </Badge>
+                        </td>
+                        <td>
+                          {/* Mostrar custos com desconto progressivo */}
+                          <div>
+                            {parseFloat(item.custo_unitario_original || 0) !== parseFloat(item.custo_unitario_final || 0) ? (
+                              <>
+                                <div>
+                                  <small className="text-muted text-decoration-line-through">
+                                    {formatarMoeda(parseFloat(item.custo_unitario_original) || 0)}
+                                  </small>
+                                </div>
+                                <div>
+                                  <strong className="text-warning">
+                                    {formatarMoeda(parseFloat(item.custo_unitario_final) || 0)}
+                                  </strong>
+                                  {parseFloat(item.desconto_custo_aplicado || 0) > 0 && (
+                                    <small className="text-success d-block">
+                                      <i className="fas fa-arrow-down me-1"></i>
+                                      -{formatarMoeda(parseFloat(item.desconto_custo_aplicado))}
+                                    </small>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <strong className="text-warning">
+                                {formatarMoeda(parseFloat(item.custo_unitario_final || item.custo_unitario_original) || 0)}
+                              </strong>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <span className="text-muted">
@@ -398,7 +431,7 @@ const VendaDetalhe = () => {
                   </tbody>
                   <tfoot>
                     <tr className="table-light">
-                      <th colSpan="4">SUBTOTAL (SEM DESCONTO)</th>
+                      <th colSpan="5">SUBTOTAL (SEM DESCONTO)</th>
                       <th className="text-info">
                         <i className="fas fa-percentage me-1"></i>
                         <strong>
@@ -428,7 +461,7 @@ const VendaDetalhe = () => {
                     </tr>
                     {(parseFloat(venda.desconto_valor) || 0) > 0 && (
                       <tr className="table-warning">
-                        <th colSpan="5">DESCONTO ({(parseFloat(venda.desconto_percentual) || 0).toFixed(1)}%)</th>
+                        <th colSpan="6">DESCONTO ({(parseFloat(venda.desconto_percentual) || 0).toFixed(1)}%)</th>
                         <th className="text-warning">
                           <i className="fas fa-minus-circle me-1"></i>
                           <strong>- {formatarMoeda(parseFloat(venda.desconto_valor) || 0)}</strong>
@@ -440,7 +473,7 @@ const VendaDetalhe = () => {
                       </tr>
                     )}
                     <tr className="table-success">
-                      <th colSpan="4">TOTAL FINAL</th>
+                      <th colSpan="5">TOTAL FINAL</th>
                       <th className="text-dark bg-info">
                         <i className="fas fa-percentage me-1 text-white"></i>
                         <strong className="text-white">

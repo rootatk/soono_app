@@ -23,6 +23,31 @@ const gerarCodigoVenda = () => {
 };
 
 /**
+ * Aplicar desconto progressivo no custo dos itens
+ * Primeiro item: custo normal
+ * Itens subsequentes: custo - R$ 1,00
+ */
+const aplicarDescontoProgressivoCusto = (itens) => {
+  return itens.map((item, index) => {
+    const custoUnitarioOriginal = parseFloat(item.custoTotal || item.custo_unitario || 0);
+    
+    // Primeiro item mantém custo original, demais têm desconto de R$ 1,00
+    const custoUnitarioFinal = index === 0 ? custoUnitarioOriginal : Math.max(0, custoUnitarioOriginal - 1.00);
+    
+    const quantidade = parseInt(item.quantidade) || 1;
+    const custoTotalFinal = custoUnitarioFinal * quantidade;
+    
+    return {
+      ...item,
+      custo_unitario_original: custoUnitarioOriginal,
+      custo_unitario_final: custoUnitarioFinal,
+      custo_total: custoTotalFinal,
+      desconto_custo_aplicado: index === 0 ? 0 : 1.00
+    };
+  });
+};
+
+/**
  * Listar todas as vendas
  */
 const listar = async (req, res) => {
@@ -240,7 +265,6 @@ const criar = async (req, res) => {
       
       const quantidade = parseInt(item.quantidade) || 1;
       const custoUnitario = parseFloat(produto.custoTotal) || 0;
-      const custoTotal = custoUnitario * quantidade;
       
       // Se tem margem simulada, calcular novo preço
       let precoUnitarioFinal = parseFloat(produto.precoVenda) || 0;
@@ -251,24 +275,35 @@ const criar = async (req, res) => {
         }
       }
       
-      const valorTotal = precoUnitarioFinal * quantidade;
-      const lucroItem = valorTotal - custoTotal;
-      
       return {
         ...item,
         produto_nome: produto.nome,
+        custoTotal: custoUnitario, // Custo original para aplicar desconto depois
         preco_unitario_original: parseFloat(produto.precoVenda),
         preco_unitario_final: precoUnitarioFinal,
-        valor_total: valorTotal,
-        custo_total: custoTotal,
-        lucro_item: lucroItem,
+        quantidade: quantidade,
         eh_brinde: item.eh_brinde || false,
         insumos_snapshot: produto.insumosUtilizados || null
       };
     });
-    
+
+    // Aplicar desconto progressivo no custo
+    const itensComDescontoCusto = aplicarDescontoProgressivoCusto(itensComCustos);
+
+    // Calcular valores finais após desconto no custo
+    const itensFinais = itensComDescontoCusto.map(item => {
+      const valorTotal = item.preco_unitario_final * item.quantidade;
+      const lucroItem = valorTotal - item.custo_total;
+      
+      return {
+        ...item,
+        valor_total: valorTotal,
+        lucro_item: lucroItem
+      };
+    });
+
     // Calcular totais da venda
-    const totaisVenda = calcularTotaisVenda(itensComCustos);
+    const totaisVenda = calcularTotaisVenda(itensFinais);
     
     // Criar cabeçalho da venda
     const vendaCabecalho = await VendaCabecalho.create({
@@ -286,7 +321,7 @@ const criar = async (req, res) => {
     }, { transaction });
     
     // Criar itens da venda
-    const itensParaCriar = itensComCustos.map(item => ({
+    const itensParaCriar = itensFinais.map(item => ({
       ...item,
       venda_cabecalho_id: vendaCabecalho.id
     }));
@@ -355,6 +390,23 @@ const simularPrecos = async (req, res) => {
       const custoUnitario = parseFloat(produto.custoTotal) || 0;
       const precoOriginal = parseFloat(produto.precoVenda) || 0;
       
+      return {
+        ...item,
+        custoTotal: custoUnitario, // Custo original para aplicar desconto depois
+        produto_nome: produto.nome,
+        quantidade: quantidade,
+        preco_original: precoOriginal
+      };
+    });
+
+    // Aplicar desconto progressivo no custo
+    const itensComDescontoCusto = aplicarDescontoProgressivoCusto(itensSimulados);
+
+    // Finalizar simulação com custos com desconto
+    const itensFinalizados = itensComDescontoCusto.map(item => {
+      const custoUnitario = item.custo_unitario_final;
+      const precoOriginal = item.preco_original;
+      
       // Simular nova margem se fornecida
       let simulacao = {
         precoVenda: precoOriginal,
@@ -366,20 +418,21 @@ const simularPrecos = async (req, res) => {
         simulacao = simularPrecoComMargem(custoUnitario, item.margem_simulada);
       }
       
-      const valorTotal = simulacao.precoVenda * quantidade;
-      const custoTotal = custoUnitario * quantidade;
-      const lucroTotal = valorTotal - custoTotal;
+      const valorTotal = simulacao.precoVenda * item.quantidade;
+      const lucroTotal = valorTotal - item.custo_total; // Custo já com desconto
       
       return {
         produto_id: item.produto_id,
-        produto_nome: produto.nome,
-        quantidade: quantidade,
-        custo_unitario: custoUnitario,
+        produto_nome: item.produto_nome,
+        quantidade: item.quantidade,
+        custo_unitario: item.custo_unitario_final, // Mostra custo com desconto
+        custo_unitario_original: item.custo_unitario_original,
+        desconto_custo_aplicado: item.desconto_custo_aplicado,
         preco_original: precoOriginal,
         margem_simulada: item.margem_simulada,
         preco_simulado: simulacao.precoVenda,
         valor_total: valorTotal,
-        custo_total: custoTotal,
+        custo_total: item.custo_total,
         lucro_total: lucroTotal,
         margem_real: simulacao.margemReal,
         eh_brinde: item.eh_brinde || false,
@@ -392,7 +445,7 @@ const simularPrecos = async (req, res) => {
     let custoTotalCalculado = 0;
     let quantidadeTotalItens = 0;
     
-    itensSimulados.forEach(item => {
+    itensFinalizados.forEach(item => {
       const quantidade = parseInt(item.quantidade) || 0;
       const precoUnitarioFinal = parseFloat(item.preco_simulado) || 0;
       const custoTotal = parseFloat(item.custo_total) || 0;
@@ -440,7 +493,7 @@ const simularPrecos = async (req, res) => {
     };
     
     res.json({
-      itens: itensSimulados,
+      itens: itensFinalizados,
       totais: totaisVenda
     });
   } catch (error) {
@@ -497,16 +550,33 @@ const atualizar = async (req, res) => {
 
       const quantidade = parseInt(item.quantidade) || 1;
       const custoUnitario = parseFloat(produto.custoTotal) || 0;
-      const custoTotal = custoUnitario * quantidade;
 
       return {
         ...item,
-        custoTotal: custoTotal,
-        produto: produto
+        custoTotal: custoUnitario, // Custo original para aplicar desconto depois
+        produto: produto,
+        quantidade: quantidade
       };
     });
 
-    const totaisCalculados = calcularTotaisVenda(itensComCustos);
+    // Aplicar desconto progressivo no custo
+    const itensComDescontoCusto = aplicarDescontoProgressivoCusto(itensComCustos);
+
+    // Calcular valores finais após desconto no custo
+    const itensFinais = itensComDescontoCusto.map(item => {
+      const precoFinal = item.preco_simulado || item.preco_original || item.produto.precoVenda || 0;
+      const valorTotal = precoFinal * item.quantidade;
+      const lucroItem = valorTotal - item.custo_total; // Custo já com desconto aplicado
+
+      return {
+        ...item,
+        preco_unitario_final: precoFinal,
+        valor_total: valorTotal,
+        lucro_item: lucroItem
+      };
+    });
+
+    const totaisCalculados = calcularTotaisVenda(itensFinais);
 
     // Atualizar cabeçalho da venda
     await vendaExistente.update({
@@ -520,29 +590,26 @@ const atualizar = async (req, res) => {
       observacoes
     });
 
-    // Criar novos itens com custos corretos
-    const itensParaCriar = itensComCustos.map(item => {
+    // Criar novos itens com custos corretos após desconto
+    const itensParaCriar = itensFinais.map(item => {
       const produto = produtosMap[item.produto_id];
-      const quantidade = parseInt(item.quantidade) || 1;
-      const custoUnitario = parseFloat(produto.custoTotal) || 0;
-      const custoTotal = custoUnitario * quantidade;
-      const precoFinal = item.preco_simulado || item.preco_original || 0;
-      const valorTotal = precoFinal * quantidade;
-      const lucroItem = valorTotal - custoTotal;
 
       return {
         venda_cabecalho_id: id,
         produto_id: item.produto_id,
         produto_nome: produto.nome,
-        quantidade: quantidade,
+        quantidade: item.quantidade,
         preco_unitario_original: item.preco_original || produto.precoVenda || 0,
         margem_simulada: item.margem_simulada || null,
-        preco_unitario_final: precoFinal,
-        valor_total: valorTotal,
-        custo_total: custoTotal,
-        lucro_item: lucroItem,
+        preco_unitario_final: item.preco_unitario_final,
+        valor_total: item.valor_total,
+        custo_total: item.custo_total, // Custo já com desconto aplicado
+        lucro_item: item.lucro_item,
         eh_brinde: item.eh_brinde || false,
-        conta_como_um_produto: item.conta_como_um_produto || false
+        conta_como_um_produto: item.conta_como_um_produto || false,
+        custo_unitario_original: item.custo_unitario_original,
+        custo_unitario_final: item.custo_unitario_final,
+        desconto_custo_aplicado: item.desconto_custo_aplicado
       };
     });
 

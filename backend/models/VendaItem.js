@@ -57,8 +57,20 @@ const VendaItem = sequelize.define('VendaItem', {
   },
   custo_total: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    comment: 'Custo total do produto no momento da venda'
+    allowNull: false
+  },
+  custo_unitario_original: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
+  custo_unitario_final: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
+  desconto_custo_aplicado: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
   },
   lucro_item: {
     type: DataTypes.DECIMAL(10, 2),
