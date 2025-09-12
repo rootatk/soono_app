@@ -29,7 +29,7 @@ const PriceSimulator = () => {
     if (produtoId) {
       carregarProduto(produtoId);
       // Margens pré-definidas para simulação rápida
-      setMargens([10, 15, 20, 25, 30, 35, 40, 45, 50]);
+      setMargens([20, 25, 30, 35, 40, 45, 50]);
     } else {
       setError('Produto não especificado');
       setLoading(false);
@@ -58,15 +58,26 @@ const PriceSimulator = () => {
     if (!produto) return;
     
     try {
-      const itensSimular = margens.map(margem => ({
-        produto_id: produto.id,
-        quantidade: 1,
-        margem_simulada: margem,
-        eh_brinde: false
-      }));
+      // Para o calculador, simular localmente sem descontos progressivos
+      // Isso mantém os preços originais do produto para referência
+      const simulacoesLocais = margens.map(margem => {
+        const custoOriginal = parseFloat(produto.custoTotal) || 0;
+        const precoSimulado = custoOriginal / (1 - (margem / 100));
+        const lucroTotal = precoSimulado - custoOriginal;
+        const margemReal = precoSimulado > 0 ? ((precoSimulado - custoOriginal) / precoSimulado) * 100 : 0;
+        
+        return {
+          produto_id: produto.id,
+          quantidade: 1,
+          margem_simulada: margem,
+          preco_simulado: precoSimulado,
+          lucro_total: lucroTotal,
+          margem_real: margemReal,
+          custo_total: custoOriginal
+        };
+      });
       
-      const response = await vendasService.simularPrecos(itensSimular);
-      setSimulacoes(response.itens);
+      setSimulacoes(simulacoesLocais);
     } catch (err) {
       setError('Erro na simulação: ' + err.message);
     }
@@ -105,9 +116,7 @@ const PriceSimulator = () => {
     return ((precoSimulado - precoOriginal) / precoOriginal) * 100;
   };
 
-  const margemAtualProduto = produto && produto.precoVenda > 0 && produto.custoTotal > 0 
-    ? ((produto.precoVenda - produto.custoTotal) / produto.precoVenda) * 100 
-    : 0;
+  const margemAtualProduto = produto?.margemLucro || 0;
 
   if (loading) {
     return (
@@ -349,7 +358,7 @@ const PriceSimulator = () => {
           </Row>
 
           {/* Actions */}
-          <Row className="mt-4">
+          <Row className="mt-4 mb-5">
             <Col className="text-center">
               <Button 
                 variant="success" 

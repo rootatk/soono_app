@@ -431,7 +431,7 @@ const VendaForm = () => {
       )}
 
       <Form onSubmit={(e) => handleSubmit(e, false)}>
-        <Row>
+        <Row className="mb-5">
           {/* Coluna Principal - Itens */}
           <Col lg={8}>
             <Card className="mb-4">
