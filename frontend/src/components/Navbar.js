@@ -57,10 +57,10 @@ const NavbarComponent = () => {
             </Nav.Link>
             
             <Nav.Link 
-              className={isActive('/relatorios') ? 'active' : ''}
-              onClick={() => handleNavClick('/relatorios')}
+              className={isActive('/estatisticas') ? 'active' : ''}
+              onClick={() => handleNavClick('/estatisticas')}
             >
-              📈 Relatórios
+              📈 Estatísticas
             </Nav.Link>
           </Nav>
         </Navbar.Collapse>

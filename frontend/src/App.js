@@ -23,6 +23,9 @@ import VendaForm from './components/Vendas/VendaForm';
 import VendaDetalhe from './components/Vendas/VendaDetalhe';
 import PriceSimulator from './components/Vendas/PriceSimulator';
 
+// Componente de Estatísticas
+import Estatisticas from './components/Estatisticas';
+
 // Adicione esta importação temporária no App.js
 import DebugInsumos from './components/Insumos/DebugInsumos';
 
@@ -59,15 +62,8 @@ function App() {
             {/* Calculadora de Preços */}
             <Route path="/calculadora" element={<PriceSimulator />} />
             
-            {/* Rotas futuras - Relatórios */}
-            <Route path="/relatorios" element={
-              <div className="container mt-4">
-                <div className="alert alert-info">
-                  <h4>Relatórios</h4>
-                  <p>Módulo em desenvolvimento (Fase 4D)</p>
-                </div>
-              </div>
-            } />
+            {/* Estatísticas e Relatórios */}
+            <Route path="/estatisticas" element={<Estatisticas />} />
             
             {/* Configurações */}
             <Route path="/configuracoes" element={

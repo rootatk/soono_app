@@ -102,6 +102,96 @@ export const estatisticaService = {
     }
   },
 
+  // Resumo geral para estatísticas
+  resumoGeral: async () => {
+    try {
+      console.log('Buscando resumo geral...');
+      const response = await api.get('/estatisticas/resumo');
+      console.log('Resumo geral:', response.data);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erro ao buscar resumo geral:', error);
+      throw error;
+    }
+  },
+
+  // Evolução de vendas mensais
+  evolucaoVendas: async () => {
+    try {
+      console.log('Buscando evolução de vendas...');
+      const response = await api.get('/estatisticas/vendas-mensal');
+      console.log('Evolução de vendas:', response.data);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error('❌ Erro ao buscar evolução de vendas:', error);
+      throw error;
+    }
+  },
+
+  // Insumos mais usados
+  insumosMaisUsados: async () => {
+    try {
+      console.log('Buscando insumos mais usados...');
+      const response = await api.get('/estatisticas/insumos-mais-usados');
+      console.log('Insumos mais usados:', response.data);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error('❌ Erro ao buscar insumos mais usados:', error);
+      throw error;
+    }
+  },
+
+  // Análise de rentabilidade
+  analiseRentabilidade: async () => {
+    try {
+      console.log('Buscando análise de rentabilidade...');
+      const response = await api.get('/estatisticas/rentabilidade');
+      console.log('Análise de rentabilidade:', response.data);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erro ao buscar análise de rentabilidade:', error);
+      throw error;
+    }
+  },
+
+  // Previsão de estoque
+  previsaoEstoque: async (diasAnalise = 30) => {
+    try {
+      console.log('Buscando previsão de estoque...');
+      const response = await api.get(`/estatisticas/previsao-estoque?dias_analise=${diasAnalise}`);
+      console.log('Previsão de estoque:', response.data);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erro ao buscar previsão de estoque:', error);
+      throw error;
+    }
+  },
+
   // Buscar dados para gráficos
   graficos: async () => {
     try {

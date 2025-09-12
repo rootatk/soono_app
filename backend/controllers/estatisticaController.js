@@ -6,6 +6,8 @@
 const Insumo = require('../models/Insumo');
 const Produto = require('../models/Produto');
 const Venda = require('../models/Venda');
+const VendaCabecalho = require('../models/VendaCabecalho');
+const VendaItem = require('../models/VendaItem');
 const { calcularValorTotalEstoque, identificarEstoqueBaixo } = require('../utils/calculoLucro');
 const { Op } = require('sequelize');
 
@@ -72,6 +74,55 @@ const resumoGeral = async (req, res) => {
       total + parseFloat(venda.lucroReal), 0
     );
 
+    // Análise de descontos progressivos de custo (novo sistema)
+    let descontosProgressivos = {
+      totalEconomizado: 0,
+      vendasComDesconto: 0,
+      vendasMultiplosItens: 0,
+      margemMelhorada: 0
+    };
+
+    try {
+      // Buscar vendas com múltiplos itens para analisar desconto progressivo
+      const vendasComItens = await VendaCabecalho.findAll({
+        where: { 
+          data: { [Op.gte]: inicioMes },
+          status: { [Op.ne]: 'cancelada' }
+        },
+        include: [{
+          model: VendaItem,
+          as: 'itens',
+          where: {
+            desconto_custo_aplicado: { [Op.gt]: 0 }
+          },
+          required: false
+        }]
+      });
+
+      // Calcular estatísticas do desconto progressivo
+      vendasComItens.forEach(venda => {
+        if (venda.itens && venda.itens.length > 0) {
+          const totalItens = venda.itens.reduce((acc, item) => acc + item.quantidade, 0);
+          if (totalItens > 1) {
+            descontosProgressivos.vendasMultiplosItens++;
+          }
+
+          venda.itens.forEach(item => {
+            if (item.desconto_custo_aplicado > 0) {
+              descontosProgressivos.totalEconomizado += parseFloat(item.desconto_custo_aplicado) * item.quantidade;
+              descontosProgressivos.vendasComDesconto++;
+            }
+          });
+        }
+      });
+
+      descontosProgressivos.margemMelhorada = descontosProgressivos.totalEconomizado > 0 ? 
+        (descontosProgressivos.totalEconomizado / faturamentoMes) * 100 : 0;
+
+    } catch (error) {
+      console.warn('Erro ao calcular descontos progressivos:', error.message);
+    }
+
     // Produtos mais lucrativos (top 5)
     const produtosMaisLucrativos = produtos
       .map(produto => ({
@@ -114,6 +165,13 @@ const resumoGeral = async (req, res) => {
         margemMes: faturamentoMes > 0 ? Math.round((lucroMes / (faturamentoMes - lucroMes)) * 10000) / 100 : 0,
         ticketMedioMes: vendasMes > 0 ? Math.round((faturamentoMes / vendasMes) * 100) / 100 : 0
       },
+      descontosProgressivos: {
+        totalEconomizado: Math.round(descontosProgressivos.totalEconomizado * 100) / 100,
+        vendasComDesconto: descontosProgressivos.vendasComDesconto,
+        vendasMultiplosItens: descontosProgressivos.vendasMultiplosItens,
+        margemMelhorada: Math.round(descontosProgressivos.margemMelhorada * 100) / 100,
+        impactoPercentual: faturamentoMes > 0 ? Math.round((descontosProgressivos.totalEconomizado / faturamentoMes) * 10000) / 100 : 0
+      },
       produtosMaisLucrativos
     };
 
@@ -141,11 +199,17 @@ const evolucaoVendasMensal = async (req, res) => {
     const agora = new Date();
     const dozesMesesAtras = new Date(agora.getFullYear() - 1, agora.getMonth(), 1);
 
-    const vendas = await Venda.findAll({
+    // Buscar vendas usando o novo modelo VendaCabecalho
+    const vendas = await VendaCabecalho.findAll({
       where: {
-        dataVenda: { [Op.gte]: dozesMesesAtras.toISOString().split('T')[0] }
+        data: { [Op.gte]: dozesMesesAtras.toISOString().split('T')[0] },
+        status: { [Op.ne]: 'cancelada' }
       },
-      order: [['dataVenda', 'ASC']]
+      include: [{
+        model: VendaItem,
+        as: 'itens'
+      }],
+      order: [['data', 'ASC']]
     });
 
     // Agrupar vendas por mês
@@ -163,20 +227,40 @@ const evolucaoVendasMensal = async (req, res) => {
         quantidade: 0,
         faturamento: 0,
         lucro: 0,
-        numeroVendas: 0
+        numeroVendas: 0,
+        descontoProgressivo: 0,
+        vendasMultiplosItens: 0
       };
     }
 
     // Processar vendas
     vendas.forEach(venda => {
-      const data = new Date(venda.dataVenda);
+      const data = new Date(venda.data);
       const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
       
       if (vendasPorMes[chave]) {
-        vendasPorMes[chave].quantidade += parseInt(venda.quantidade);
-        vendasPorMes[chave].faturamento += parseFloat(venda.valorTotal);
-        vendasPorMes[chave].lucro += parseFloat(venda.lucroReal);
+        // Calcular totais da venda
+        const totalItens = venda.itens?.reduce((acc, item) => acc + item.quantidade, 0) || 0;
+        const faturamentoVenda = parseFloat(venda.total) || 0;
+        const lucroVenda = parseFloat(venda.lucro_total) || 0;
+        
+        vendasPorMes[chave].quantidade += totalItens;
+        vendasPorMes[chave].faturamento += faturamentoVenda;
+        vendasPorMes[chave].lucro += lucroVenda;
         vendasPorMes[chave].numeroVendas += 1;
+
+        // Calcular desconto progressivo
+        if (venda.itens) {
+          const descontoTotal = venda.itens.reduce((acc, item) => {
+            return acc + (parseFloat(item.desconto_custo_aplicado || 0) * item.quantidade);
+          }, 0);
+          
+          vendasPorMes[chave].descontoProgressivo += descontoTotal;
+          
+          if (totalItens > 1) {
+            vendasPorMes[chave].vendasMultiplosItens += 1;
+          }
+        }
       }
     });
 
@@ -184,8 +268,11 @@ const evolucaoVendasMensal = async (req, res) => {
       ...vendasPorMes[mes],
       faturamento: Math.round(vendasPorMes[mes].faturamento * 100) / 100,
       lucro: Math.round(vendasPorMes[mes].lucro * 100) / 100,
+      descontoProgressivo: Math.round(vendasPorMes[mes].descontoProgressivo * 100) / 100,
       ticketMedio: vendasPorMes[mes].numeroVendas > 0 ? 
-        Math.round((vendasPorMes[mes].faturamento / vendasPorMes[mes].numeroVendas) * 100) / 100 : 0
+        Math.round((vendasPorMes[mes].faturamento / vendasPorMes[mes].numeroVendas) * 100) / 100 : 0,
+      margemMelhoradaProgressivo: vendasPorMes[mes].faturamento > 0 ?
+        Math.round((vendasPorMes[mes].descontoProgressivo / vendasPorMes[mes].faturamento) * 10000) / 100 : 0
     }));
 
     res.json({
