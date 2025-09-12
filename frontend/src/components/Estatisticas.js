@@ -13,7 +13,6 @@ const Estatisticas = () => {
   const [vendasMensais, setVendasMensais] = useState([]);
   const [insumosMaisUsados, setInsumosMaisUsados] = useState([]);
   const [rentabilidade, setRentabilidade] = useState(null);
-  const [previsaoEstoque, setPrevisaoEstoque] = useState(null);
 
   useEffect(() => {
     loadData(activeTab);
@@ -50,13 +49,6 @@ const Estatisticas = () => {
           if (!rentabilidade) {
             const data = await estatisticaService.analiseRentabilidade();
             setRentabilidade(data);
-          }
-          break;
-
-        case 'estoque':
-          if (!previsaoEstoque) {
-            const data = await estatisticaService.previsaoEstoque();
-            setPrevisaoEstoque(data);
           }
           break;
       }
@@ -107,55 +99,6 @@ const Estatisticas = () => {
             </Card>
           </Col>
         </Row>
-
-        {resumoData.descontosProgressivos && (
-          <Row className="mb-4">
-            <Col>
-              <Card>
-                <Card.Header>
-                  <h5 className="mb-0">🎯 Sistema de Desconto Progressivo</h5>
-                </Card.Header>
-                <Card.Body>
-                  <Row>
-                    <Col md={3}>
-                      <div className="text-center">
-                        <h4 className="text-success">{formatarMoeda(resumoData.descontosProgressivos.totalEconomizado || 0)}</h4>
-                        <small className="text-muted">Total Economizado (R$ 1,00/item)</small>
-                      </div>
-                    </Col>
-                    <Col md={3}>
-                      <div className="text-center">
-                        <h4 className="text-primary">{resumoData.descontosProgressivos.vendasMultiplosItens || 0}</h4>
-                        <small className="text-muted">Vendas com Múltiplos Itens</small>
-                      </div>
-                    </Col>
-                    <Col md={3}>
-                      <div className="text-center">
-                        <h4 className="text-info">{resumoData.descontosProgressivos.vendasComDesconto || 0}</h4>
-                        <small className="text-muted">Itens com Desconto</small>
-                      </div>
-                    </Col>
-                    <Col md={3}>
-                      <div className="text-center">
-                        <h4 className="text-warning">{(resumoData.descontosProgressivos.margemMelhorada || 0).toFixed(2)}%</h4>
-                        <small className="text-muted">Melhoria na Margem</small>
-                      </div>
-                    </Col>
-                  </Row>
-                  <hr />
-                  <div className="text-center">
-                    <p className="mb-0">
-                      <strong>Impacto do Sistema:</strong> O desconto progressivo de custo está gerando{' '}
-                      <Badge bg="success">{formatarMoeda(resumoData.descontosProgressivos.totalEconomizado || 0)}</Badge> em economia 
-                      adicional este mês, melhorando a margem em{' '}
-                      <Badge bg="primary">{(resumoData.descontosProgressivos.margemMelhorada || 0).toFixed(2)}%</Badge>
-                    </p>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        )}
 
         <Row className="mb-4">
           <Col md={6}>
@@ -447,118 +390,11 @@ const Estatisticas = () => {
     );
   };
 
-  const renderPrevisaoEstoque = () => {
-    if (!previsaoEstoque) return null;
-
-    const getSituacaoColor = (situacao) => {
-      switch (situacao) {
-        case 'critico': return 'danger';
-        case 'alerta': return 'warning';
-        case 'atencao': return 'info';
-        case 'ok': return 'success';
-        default: return 'secondary';
-      }
-    };
-
-    return (
-      <div>
-        <Row className="mb-4">
-          <Col md={2}>
-            <Card className="text-center border-danger">
-              <Card.Body>
-                <h3 className="text-danger">{previsaoEstoque.resumo?.criticos || 0}</h3>
-                <small>Críticos</small>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={2}>
-            <Card className="text-center border-warning">
-              <Card.Body>
-                <h3 className="text-warning">{previsaoEstoque.resumo?.alertas || 0}</h3>
-                <small>Alertas</small>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={2}>
-            <Card className="text-center border-info">
-              <Card.Body>
-                <h3 className="text-info">{previsaoEstoque.resumo?.atencao || 0}</h3>
-                <small>Atenção</small>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={2}>
-            <Card className="text-center border-success">
-              <Card.Body>
-                <h3 className="text-success">{previsaoEstoque.resumo?.ok || 0}</h3>
-                <small>OK</small>
-              </Card.Body>
-            </Card>
-          </Col>
-          <Col md={2}>
-            <Card className="text-center">
-              <Card.Body>
-                <h3 className="text-muted">{previsaoEstoque.resumo?.semConsumo || 0}</h3>
-                <small>Sem Consumo</small>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        <Card>
-          <Card.Header>
-            <h5 className="mb-0">⏰ Previsão de Esgotamento - {previsaoEstoque.parametros?.diasAnalise} dias</h5>
-          </Card.Header>
-          <Card.Body>
-            <Table responsive>
-              <thead>
-                <tr>
-                  <th>Insumo</th>
-                  <th>Estoque Atual</th>
-                  <th>Consumo Diário</th>
-                  <th>Dias p/ Esgotar</th>
-                  <th>Situação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {previsaoEstoque.previsoes?.map((prev) => (
-                  <tr key={prev.id}>
-                    <td>
-                      <strong>{prev.nome}</strong>
-                      {prev.variacao && <small className="text-muted d-block">{prev.variacao}</small>}
-                    </td>
-                    <td>{formatarNumero(prev.estoqueAtual)}</td>
-                    <td>{formatarNumero(prev.consumoDiario)}</td>
-                    <td>
-                      {prev.diasParaEsgotar !== null ? (
-                        <span className={prev.diasParaEsgotar <= 7 ? 'text-danger fw-bold' : ''}>
-                          {prev.diasParaEsgotar} dias
-                        </span>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>
-                      <Badge bg={getSituacaoColor(prev.situacao)}>
-                        {prev.situacao.replace('_', ' ').toUpperCase()}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-      </div>
-    );
-  };
-
   const tabs = [
     { key: 'resumo', label: '📊 Resumo Geral', icon: 'fas fa-chart-pie' },
     { key: 'vendas', label: '📈 Vendas Mensais', icon: 'fas fa-chart-line' },
     { key: 'insumos', label: '🧶 Insumos', icon: 'fas fa-boxes' },
-    { key: 'rentabilidade', label: '💰 Rentabilidade', icon: 'fas fa-dollar-sign' },
-    { key: 'estoque', label: '📦 Previsão Estoque', icon: 'fas fa-warehouse' }
+    { key: 'rentabilidade', label: '💰 Rentabilidade', icon: 'fas fa-dollar-sign' }
   ];
 
   return (
@@ -604,7 +440,6 @@ const Estatisticas = () => {
           {activeTab === 'vendas' && renderVendasMensais()}
           {activeTab === 'insumos' && renderInsumosMaisUsados()}
           {activeTab === 'rentabilidade' && renderRentabilidade()}
-          {activeTab === 'estoque' && renderPrevisaoEstoque()}
         </div>
       )}
     </Container>

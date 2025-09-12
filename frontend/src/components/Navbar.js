@@ -21,7 +21,7 @@ const NavbarComponent = () => {
           style={{ cursor: 'pointer' }}
           onClick={() => handleNavClick('/')}
         >
-          🧶 Sóonó | Atelier
+          🧶 Sóonó | macramê & crochê
         </Navbar.Brand>
         
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

@@ -20,7 +20,7 @@ const resumoGeral = async (req, res) => {
     const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     const inicioAno = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 
-    // Contar registros
+    // Contar registros - usando VendaCabecalho para contadores de vendas (apenas finalizadas)
     const [
       totalInsumos,
       totalProdutos,
@@ -31,10 +31,10 @@ const resumoGeral = async (req, res) => {
     ] = await Promise.all([
       Insumo.count({ where: { ativo: true } }),
       Produto.count({ where: { ativo: true } }),
-      Venda.count(),
-      Venda.count({ where: { dataVenda: hoje } }),
-      Venda.count({ where: { dataVenda: { [Op.gte]: inicioMes } } }),
-      Venda.count({ where: { dataVenda: { [Op.gte]: inicioAno } } })
+      VendaCabecalho.count({ where: { status: 'finalizada' } }),
+      VendaCabecalho.count({ where: { data: hoje, status: 'finalizada' } }),
+      VendaCabecalho.count({ where: { data: { [Op.gte]: inicioMes }, status: 'finalizada' } }),
+      VendaCabecalho.count({ where: { data: { [Op.gte]: inicioAno }, status: 'finalizada' } })
     ]);
 
     // Buscar todos os insumos para calcular valor em estoque
@@ -51,27 +51,33 @@ const resumoGeral = async (req, res) => {
       total + parseFloat(produto.precoVenda), 0
     );
 
-    // Estatísticas de vendas
-    const vendas = await Venda.findAll({
-      where: { dataVenda: { [Op.gte]: inicioMes } }
+    // Estatísticas de vendas - usando VendaCabecalho (apenas finalizadas)
+    const vendas = await VendaCabecalho.findAll({
+      where: { 
+        data: { [Op.gte]: inicioMes },
+        status: 'finalizada'
+      }
     });
 
     const faturamentoMes = vendas.reduce((total, venda) => 
-      total + parseFloat(venda.valorTotal), 0
+      total + parseFloat(venda.total), 0
     );
     const lucroMes = vendas.reduce((total, venda) => 
-      total + parseFloat(venda.lucroReal), 0
+      total + parseFloat(venda.lucro_total), 0
     );
 
-    const vendasAnoCompleto = await Venda.findAll({
-      where: { dataVenda: { [Op.gte]: inicioAno } }
+    const vendasAnoCompleto = await VendaCabecalho.findAll({
+      where: { 
+        data: { [Op.gte]: inicioAno },
+        status: 'finalizada'
+      }
     });
 
     const faturamentoAno = vendasAnoCompleto.reduce((total, venda) => 
-      total + parseFloat(venda.valorTotal), 0
+      total + parseFloat(venda.total), 0
     );
     const lucroAno = vendasAnoCompleto.reduce((total, venda) => 
-      total + parseFloat(venda.lucroReal), 0
+      total + parseFloat(venda.lucro_total), 0
     );
 
     // Análise de descontos progressivos de custo (novo sistema)
@@ -83,11 +89,11 @@ const resumoGeral = async (req, res) => {
     };
 
     try {
-      // Buscar vendas com múltiplos itens para analisar desconto progressivo
+      // Buscar vendas com múltiplos itens para analisar desconto progressivo (apenas finalizadas)
       const vendasComItens = await VendaCabecalho.findAll({
         where: { 
           data: { [Op.gte]: inicioMes },
-          status: { [Op.ne]: 'cancelada' }
+          status: 'finalizada'
         },
         include: [{
           model: VendaItem,
@@ -199,11 +205,11 @@ const evolucaoVendasMensal = async (req, res) => {
     const agora = new Date();
     const dozesMesesAtras = new Date(agora.getFullYear() - 1, agora.getMonth(), 1);
 
-    // Buscar vendas usando o novo modelo VendaCabecalho
+    // Buscar vendas usando o novo modelo VendaCabecalho (apenas finalizadas)
     const vendas = await VendaCabecalho.findAll({
       where: {
         data: { [Op.gte]: dozesMesesAtras.toISOString().split('T')[0] },
-        status: { [Op.ne]: 'cancelada' }
+        status: 'finalizada'
       },
       include: [{
         model: VendaItem,
@@ -308,17 +314,24 @@ const insumosMaisUsados = async (req, res) => {
         produto.insumos.forEach(insumoUtilizado => {
           const id = insumoUtilizado.id;
           const quantidade = parseFloat(insumoUtilizado.quantidade) || 0;
+          const unidadeUsada = insumoUtilizado.unidade; // Usar a unidade específica do produto
           
           if (!usoInsumos[id]) {
             usoInsumos[id] = {
               insumoId: id,
               quantidadeTotalUsada: 0,
-              produtosQueUtilizam: 0
+              produtosQueUtilizam: 0,
+              unidadeReal: unidadeUsada // Guardar a unidade realmente usada
             };
           }
           
           usoInsumos[id].quantidadeTotalUsada += quantidade;
           usoInsumos[id].produtosQueUtilizam += 1;
+          
+          // Se encontramos uma unidade específica diferente da base, usar ela
+          if (unidadeUsada && unidadeUsada !== 'unidade') {
+            usoInsumos[id].unidadeReal = unidadeUsada;
+          }
         });
       }
     });
@@ -333,14 +346,46 @@ const insumosMaisUsados = async (req, res) => {
     const insumosMaisUsados = Object.values(usoInsumos)
       .map(uso => {
         const insumo = insumos.find(i => i.id === uso.insumoId);
+        const custoUnitarioBase = parseFloat(insumo?.custoUnitario || 0);
+        const unidadeReal = uso.unidadeReal || insumo?.unidade;
+        
+        // Calcular valor total com conversão de unidades se necessário
+        let valorTotalUtilizado = 0;
+        if (custoUnitarioBase > 0) {
+          // Se a unidade usada é diferente da unidade base, aplicar conversão
+          if (unidadeReal && unidadeReal !== insumo?.unidade && insumo?.conversoes) {
+            try {
+              // insumo.conversoes já é um objeto (Sequelize parseia automaticamente JSON)
+              const conversoes = typeof insumo.conversoes === 'string' ? 
+                JSON.parse(insumo.conversoes) : insumo.conversoes;
+              const fatorConversao = conversoes[unidadeReal];
+              
+              if (fatorConversao) {
+                // Custo por unidade real = custo base ÷ fator de conversão
+                const custoPorUnidadeReal = custoUnitarioBase / fatorConversao;
+                valorTotalUtilizado = uso.quantidadeTotalUsada * custoPorUnidadeReal;
+              } else {
+                // Se não tem conversão, usar valor direto (pode estar errado)
+                valorTotalUtilizado = uso.quantidadeTotalUsada * custoUnitarioBase;
+              }
+            } catch (e) {
+              // Se erro ao parsear conversões, usar valor direto
+              valorTotalUtilizado = uso.quantidadeTotalUsada * custoUnitarioBase;
+            }
+          } else {
+            // Unidades iguais, usar valor direto
+            valorTotalUtilizado = uso.quantidadeTotalUsada * custoUnitarioBase;
+          }
+        }
+        
         return {
           ...uso,
           nome: insumo?.nome || 'Insumo não encontrado',
           variacao: insumo?.variacao,
           categoria: insumo?.categoria,
-          custoUnitario: parseFloat(insumo?.custoUnitario || 0),
-          unidade: insumo?.unidade,
-          valorTotalUtilizado: Math.round((uso.quantidadeTotalUsada * parseFloat(insumo?.custoUnitario || 0)) * 100) / 100
+          custoUnitario: custoUnitarioBase,
+          unidade: unidadeReal,
+          valorTotalUtilizado: Math.round(valorTotalUtilizado * 100) / 100
         };
       })
       .sort((a, b) => b.quantidadeTotalUsada - a.quantidadeTotalUsada);
