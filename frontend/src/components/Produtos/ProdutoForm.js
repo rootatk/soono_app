@@ -38,6 +38,9 @@ const ProdutoForm = () => {
   const [success, setSuccess] = useState('');
   const [imagemFile, setImagemFile] = useState(null);
 
+  // Estado para controlar modo de precificação
+  const [pricingMode, setPricingMode] = useState('margin'); // 'margin' ou 'price'
+
   const categorias = [
     'Pulseiras', 'Chaveiros', 'Bolsas', 
     'Outros'
@@ -60,6 +63,14 @@ const ProdutoForm = () => {
             delete produtoData.insumosCompletos;
           }
           setProduto(produtoData);
+          
+          // Inicializar o modo de precificação baseado nos dados existentes
+          // Se o produto tem precoVenda definido, assumir modo price
+          if (produtoData.precoVenda && produtoData.precoVenda > 0) {
+            setPricingMode('price');
+          } else {
+            setPricingMode('margin');
+          }
         }
       } catch (err) {
         setError('Erro ao carregar dados: ' + err.message);
@@ -175,6 +186,17 @@ const ProdutoForm = () => {
     return custoTotal / (1 - margem / 100);
   };
 
+  const calcularMargemDePreco = (preco) => {
+    const custoTotal = calcularCustoTotal();
+    const precoNum = parseFloat(preco) || 0;
+    
+    if (custoTotal === 0 || precoNum === 0) return 0;
+    if (precoNum <= custoTotal) return 0; // Preço deve ser maior que custo
+    
+    // Fórmula para calcular margem: Margem = ((Preço - Custo) / Preço) * 100
+    return ((precoNum - custoTotal) / precoNum) * 100;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -218,7 +240,9 @@ const ProdutoForm = () => {
         ...produto,
         imagemUrl: finalImagemUrl,
         custoTotal: calcularCustoTotal(),
-        precoVenda: calcularPrecoVenda(),
+        // Definir valores finais baseados no modo de precificação
+        precoVenda: pricingMode === 'margin' ? calcularPrecoVenda() : parseFloat(produto.precoVenda) || 0,
+        margemLucro: pricingMode === 'price' ? calcularMargemDePreco(produto.precoVenda) : parseFloat(produto.margemLucro) || 0,
         insumos: produto.insumos.map(i => ({ id: i.id, quantidade: i.quantidade, unidade: i.unidade }))
       };
 
@@ -587,28 +611,94 @@ const ProdutoForm = () => {
                 </Card>
 
                 <Row className="mb-4">
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Margem de Lucro (%)</Form.Label>
-                      <Form.Control
-                        type="number"
-                        step="0.01"
-                        name="margemLucro"
-                        value={produto.margemLucro}
-                        onChange={handleInputChange}
-                        placeholder="Ex: 30"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <div className="mt-4">
-                      <Badge bg="info" className="fs-6 p-2">
-                        Custo Total: R$ {calcularCustoTotal().toFixed(2)}
-                      </Badge>
-                      <Badge bg="success" className="fs-6 p-2 ms-2">
-                        Preço Sugerido: R$ {calcularPrecoVenda().toFixed(2)}
-                      </Badge>
-                    </div>
+                  <Col>
+                    <Card>
+                      <Card.Header>
+                        <h5 className="mb-0">Precificação</h5>
+                      </Card.Header>
+                      <Card.Body>
+                        {/* Toggle de Modo de Precificação */}
+                        <div className="mb-3">
+                          <Form.Label>Modo de Precificação</Form.Label>
+                          <div className="d-flex gap-3">
+                            <Form.Check
+                              type="radio"
+                              id="margin-mode"
+                              name="pricingMode"
+                              label="Definir Margem → Calcular Preço"
+                              checked={pricingMode === 'margin'}
+                              onChange={() => setPricingMode('margin')}
+                            />
+                            <Form.Check
+                              type="radio"
+                              id="price-mode"
+                              name="pricingMode"
+                              label="Definir Preço → Calcular Margem"
+                              checked={pricingMode === 'price'}
+                              onChange={() => setPricingMode('price')}
+                            />
+                          </div>
+                        </div>
+
+                        <Row>
+                          {pricingMode === 'margin' ? (
+                            /* Modo Margem: Input de margem, preço calculado */
+                            <>
+                              <Col md={6}>
+                                <Form.Group className="mb-3">
+                                  <Form.Label>Margem de Lucro (%)</Form.Label>
+                                  <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    name="margemLucro"
+                                    value={produto.margemLucro}
+                                    onChange={handleInputChange}
+                                    placeholder="Ex: 30"
+                                  />
+                                </Form.Group>
+                              </Col>
+                              <Col md={6}>
+                                <div className="mt-4">
+                                  <Badge bg="info" className="fs-6 p-2">
+                                    Custo Total: R$ {calcularCustoTotal().toFixed(2)}
+                                  </Badge>
+                                  <Badge bg="success" className="fs-6 p-2 ms-2">
+                                    Preço Calculado: R$ {calcularPrecoVenda().toFixed(2)}
+                                  </Badge>
+                                </div>
+                              </Col>
+                            </>
+                          ) : (
+                            /* Modo Preço: Input de preço, margem calculada */
+                            <>
+                              <Col md={6}>
+                                <Form.Group className="mb-3">
+                                  <Form.Label>Preço de Venda (R$)</Form.Label>
+                                  <Form.Control
+                                    type="number"
+                                    step="0.01"
+                                    name="precoVenda"
+                                    value={produto.precoVenda || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="Ex: 25.00"
+                                  />
+                                </Form.Group>
+                              </Col>
+                              <Col md={6}>
+                                <div className="mt-4">
+                                  <Badge bg="info" className="fs-6 p-2">
+                                    Custo Total: R$ {calcularCustoTotal().toFixed(2)}
+                                  </Badge>
+                                  <Badge bg="primary" className="fs-6 p-2 ms-2">
+                                    Margem Calculada: {calcularMargemDePreco(produto.precoVenda).toFixed(1)}%
+                                  </Badge>
+                                </div>
+                              </Col>
+                            </>
+                          )}
+                        </Row>
+                      </Card.Body>
+                    </Card>
                   </Col>
                 </Row>
 
