@@ -208,12 +208,19 @@ const Dashboard = () => {
                             {new Date(venda.data).toLocaleDateString('pt-BR')}
                           </td>
                           <td>
-                            <strong>{venda.produto?.nome || 'N/A'}</strong>
+                            <strong>
+                              {venda.itens && venda.itens.length > 0 
+                                ? venda.itens.length === 1 
+                                  ? venda.itens[0].produto_nome 
+                                  : `${venda.itens.length} produtos`
+                                : 'N/A'
+                              }
+                            </strong>
                           </td>
-                          <td>{venda.nomeCliente || 'Cliente não informado'}</td>
+                          <td>{venda.cliente || 'Cliente não informado'}</td>
                           <td>
                             <span className="badge-soono-primary">
-                              {formatarMoeda(venda.valorTotal)}
+                              {formatarMoeda(venda.total)}
                             </span>
                           </td>
                         </tr>
@@ -243,9 +250,9 @@ const Dashboard = () => {
 
               <div className="mb-3">
                 <small className="text-muted">MARGEM MÉDIA</small>
-                <p className="mb-1 fw-bold">Produtos</p>
+                <p className="mb-1 fw-bold">Este Mês</p>
                 <p className="text-soono-gold">
-                  {((metricas?.margemMedia || 0) * 100).toFixed(1)}%
+                  {(metricas?.financeiro?.margemMes || 0).toFixed(1)}%
                 </p>
               </div>
 
