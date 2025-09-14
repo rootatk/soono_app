@@ -26,6 +26,9 @@ import PriceSimulator from './components/Vendas/PriceSimulator';
 // Componente de Estatísticas
 import Estatisticas from './components/Estatisticas';
 
+// Componente de Backup
+import BackupManager from './components/BackupManager';
+
 // Adicione esta importação temporária no App.js
 import DebugInsumos from './components/Insumos/DebugInsumos';
 
@@ -64,6 +67,9 @@ function App() {
             
             {/* Estatísticas e Relatórios */}
             <Route path="/estatisticas" element={<Estatisticas />} />
+            
+            {/* Backup Manager */}
+            <Route path="/backup" element={<BackupManager />} />
             
             {/* Configurações */}
             <Route path="/configuracoes" element={

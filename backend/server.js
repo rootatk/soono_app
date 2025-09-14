@@ -10,6 +10,9 @@ require('dotenv').config();
 // Importar configuração do banco
 const { testConnection, syncDatabase } = require('./config/db');
 
+// Importar sistema de backup
+const { checkAndBackup, gracefulShutdown } = require('./utils/backupUtils');
+
 // Importar modelos para criar as associações
 require('./models/Insumo');
 require('./models/Produto');
@@ -60,6 +63,9 @@ app.use('/api/produtos', require('./routes/produtos'));
 app.use('/api/vendas', require('./routes/vendas'));
 app.use('/api/estatisticas', require('./routes/estatisticas'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/backup', require('./routes/backup'));
+app.use('/api/estatisticas', require('./routes/estatisticas'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Servir arquivos estáticos da pasta uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -98,6 +104,10 @@ const startServer = async () => {
     
     console.log('📊 Banco de dados sincronizado!');
     
+    // Verificar e criar backup se necessário
+    console.log('💾 Verificando sistema de backup...');
+    checkAndBackup();
+    
     // Iniciar servidor
     app.listen(PORT, () => {
       console.log('🚀 ================================');
@@ -114,6 +124,8 @@ const startServer = async () => {
       console.log('   • GET  /api/vendas');
       console.log('   • POST /api/vendas');
       console.log('   • GET  /api/estatisticas/resumo');
+      console.log('   • GET  /api/backup/status');
+      console.log('   • POST /api/backup/create');
       console.log('🚀 ================================');
     });
   } catch (error) {
@@ -123,3 +135,14 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Graceful shutdown para criar backup na saída
+process.on('SIGINT', () => {
+  console.log('\n💾 Criando backup antes de fechar...');
+  gracefulShutdown();
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n💾 Criando backup antes de fechar...');
+  gracefulShutdown();
+});
