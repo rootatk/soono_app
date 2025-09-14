@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/frontend/node_modules
 /.pnp
 .pnp.js
 
@@ -24,3 +25,7 @@ yarn-error.log*
 
 # ignorar banco local
 backend/database/soono.db
+
+# ignorar banco de imagens e backup
+backend/uploads
+backend/uploads_backup
