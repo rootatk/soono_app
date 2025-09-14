@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Alert, Spinner, Badge, Button, Nav } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Alert, Spinner, Badge, Button, Nav, Form } from 'react-bootstrap';
 import { formatarMoeda, formatarNumero } from '../utils/formatarMoeda';
 import { estatisticaService } from '../services/estatisticas';
 
@@ -13,6 +13,11 @@ const Estatisticas = () => {
   const [vendasMensais, setVendasMensais] = useState([]);
   const [insumosMaisUsados, setInsumosMaisUsados] = useState([]);
   const [rentabilidade, setRentabilidade] = useState(null);
+
+  // Export states
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
 
   useEffect(() => {
     loadData(activeTab);
@@ -77,6 +82,150 @@ const Estatisticas = () => {
       console.warn('Error formatting month:', yearMonth, error);
       return yearMonth; // Fallback to original format
     }
+  };
+
+  // Initialize date range with current month
+  useEffect(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    setExportStartDate(firstDay.toISOString().split('T')[0]);
+    setExportEndDate(lastDay.toISOString().split('T')[0]);
+  }, []);
+
+  // Export functions
+  const handleExportExcel = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      setError('Por favor, selecione as datas inicial e final');
+      return;
+    }
+
+    if (new Date(exportStartDate) > new Date(exportEndDate)) {
+      setError('Data inicial deve ser anterior à data final');
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+      setError(null);
+
+      const response = await fetch(`/api/vendas/export/excel?startDate=${exportStartDate}&endDate=${exportEndDate}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao exportar dados');
+      }
+
+      // Get filename from response headers
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+        : `vendas_${exportStartDate}_ate_${exportEndDate}.xlsx`;
+
+      // Download file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      console.log(`✅ Arquivo exportado: ${filename}`);
+
+    } catch (error) {
+      console.error('❌ Erro no export:', error);
+      setError(`Erro ao exportar: ${error.message}`);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const setQuickDateRange = (days) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+    
+    setExportStartDate(startDate.toISOString().split('T')[0]);
+    setExportEndDate(endDate.toISOString().split('T')[0]);
+  };
+
+  const renderExportSection = () => {
+    return (
+      <Card className="mt-4">
+        <Card.Header>
+          <h5 className="mb-0">📋 Exportar Vendas Detalhadas</h5>
+        </Card.Header>
+        <Card.Body>
+          <p className="text-muted mb-3">
+            Exporte dados completos com: Data da Venda, Cliente, Produtos, Quantidade, Total Final e Lucro Total
+          </p>
+          
+          <Row className="mb-3">
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>Data Inicial</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={exportStartDate}
+                  onChange={(e) => setExportStartDate(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>Data Final</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={exportEndDate}
+                  onChange={(e) => setExportEndDate(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row className="mb-3">
+            <Col>
+              <div className="d-flex gap-2 flex-wrap">
+                <Button variant="outline-secondary" size="sm" onClick={() => setQuickDateRange(30)}>
+                  Últimos 30 dias
+                </Button>
+                <Button variant="outline-secondary" size="sm" onClick={() => setQuickDateRange(90)}>
+                  Últimos 3 meses
+                </Button>
+                <Button variant="outline-secondary" size="sm" onClick={() => setQuickDateRange(365)}>
+                  Último ano
+                </Button>
+              </div>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col>
+              <Button 
+                variant="success" 
+                onClick={handleExportExcel}
+                disabled={exportLoading || !exportStartDate || !exportEndDate}
+              >
+                {exportLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    📊 Exportar Excel
+                  </>
+                )}
+              </Button>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+    );
   };
 
   const renderResumoGeral = () => {
@@ -245,43 +394,47 @@ const Estatisticas = () => {
     if (vendasMensais.length === 0) return null;
 
     return (
-      <Card>
-        <Card.Header>
-          <h5 className="mb-0">📈 Evolução de Vendas - Últimos 12 Meses</h5>
-        </Card.Header>
-        <Card.Body>
-          <Table responsive>
-            <thead>
-              <tr>
-                <th>Mês</th>
-                <th>Vendas</th>
-                <th>Quantidade de Produtos</th>
-                <th>Faturamento</th>
-                <th>Lucro</th >
-                <th>Ticket Médio</th>
-                <th>Vendas 2+ Itens</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vendasMensais.map((mes) => (
-                <tr key={mes.mes}>
-                  <td>{formatMonth(mes.mes)}</td>
-                  <td>{mes.numeroVendas}</td>
-                  <td>{mes.quantidade}</td>
-                  <td>{formatarMoeda(mes.faturamento)}</td>
-                  <td className="text-success">{formatarMoeda(mes.lucro)}</td>
-                  <td>{formatarMoeda(mes.ticketMedio)}</td>
-                  <td>
-                    <Badge bg={mes.vendasMultiplosItens > 0 ? 'success' : 'secondary'}>
-                      {mes.vendasMultiplosItens || 0}
-                    </Badge>
-                  </td>
+      <div>
+        <Card>
+          <Card.Header>
+            <h5 className="mb-0">📈 Evolução de Vendas - Últimos 12 Meses</h5>
+          </Card.Header>
+          <Card.Body>
+            <Table responsive>
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th>Vendas</th>
+                  <th>Quantidade de Produtos</th>
+                  <th>Faturamento</th>
+                  <th>Lucro</th >
+                  <th>Ticket Médio</th>
+                  <th>Vendas 2+ Itens</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
+              </thead>
+              <tbody>
+                {vendasMensais.map((mes) => (
+                  <tr key={mes.mes}>
+                    <td>{formatMonth(mes.mes)}</td>
+                    <td>{mes.numeroVendas}</td>
+                    <td>{mes.quantidade}</td>
+                    <td>{formatarMoeda(mes.faturamento)}</td>
+                    <td className="text-success">{formatarMoeda(mes.lucro)}</td>
+                    <td>{formatarMoeda(mes.ticketMedio)}</td>
+                    <td>
+                      <Badge bg={mes.vendasMultiplosItens > 0 ? 'success' : 'secondary'}>
+                        {mes.vendasMultiplosItens || 0}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+        
+        {renderExportSection()}
+      </div>
     );
   };
 
