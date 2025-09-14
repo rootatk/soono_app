@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import vendasService from '../../services/vendas';
 import { formatarMoeda } from '../../utils/formatarMoeda';
+import { formatDateForDisplay } from '../../utils/dateUtils';
 
 const VendaList = () => {
   const navigate = useNavigate();
@@ -340,7 +341,7 @@ const VendaList = () => {
                             <strong>{venda.codigo}</strong>
                           </td>
                           <td>
-                            {new Date(venda.data).toLocaleDateString('pt-BR')}
+                            {formatDateForDisplay(venda.data)}
                           </td>
                           <td>
                             {venda.cliente || <span className="text-muted">Sem cliente</span>}

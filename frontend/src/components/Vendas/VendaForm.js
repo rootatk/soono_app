@@ -7,6 +7,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import produtosService from '../../services/produtos';
 import vendasService from '../../services/vendas';
 import { formatarMoeda } from '../../utils/formatarMoeda';
+import DatePickerInput from '../common/DatePickerInput';
 
 const VendaForm = () => {
   const navigate = useNavigate();
@@ -26,6 +27,15 @@ const VendaForm = () => {
   // Dados da venda
   const [cliente, setCliente] = useState('');
   const [observacoes, setObservacoes] = useState('');
+  
+  // Date state - now receives YYYY-MM-DD from DatePickerInput
+  const [dataVenda, setDataVenda] = useState(() => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  });
   
   // Modal de adicionar produto
   const [showModalProduto, setShowModalProduto] = useState(false);
@@ -98,6 +108,17 @@ const VendaForm = () => {
       // Carregar dados da venda
       setCliente(vendaData.cliente || '');
       setObservacoes(vendaData.observacoes || '');
+      
+      // Load date directly in YYYY-MM-DD format for DatePickerInput
+      if (vendaData.data) {
+        // If data is in ISO format, extract the date part
+        const dateStr = vendaData.data.toString();
+        if (dateStr.includes('T')) {
+          setDataVenda(dateStr.split('T')[0]); // Extract YYYY-MM-DD part
+        } else {
+          setDataVenda(vendaData.data); // Assume it's already in YYYY-MM-DD format
+        }
+      }
       
       // Converter itens da venda para o formato do formulário
       console.log('Debug - produtos disponíveis:', produtos.length);
@@ -303,7 +324,8 @@ const VendaForm = () => {
       const dadosVenda = {
         itens: itensVenda,
         cliente: cliente.trim() || null,
-        observacoes: observacoes.trim() || null
+        observacoes: observacoes.trim() || null,
+        data: dataVenda || null // DatePickerInput already sends YYYY-MM-DD format
       };
       
       let vendaResultado;
@@ -537,6 +559,18 @@ const VendaForm = () => {
                     onChange={(e) => setCliente(e.target.value)}
                     placeholder="Nome do cliente"
                   />
+                </Form.Group>
+                
+                <Form.Group className="mb-3">
+                  <Form.Label>Data da Venda</Form.Label>
+                  <DatePickerInput
+                    value={dataVenda}
+                    onChange={setDataVenda}
+                    placeholder="DD-MM-AAAA"
+                  />
+                  <Form.Text className="text-muted">
+                    Deixe em branco para usar a data atual
+                  </Form.Text>
                 </Form.Group>
                 
                 <Form.Group className="mb-3">

@@ -60,6 +60,25 @@ const Estatisticas = () => {
     }
   };
 
+  // Format month from YYYY-MM to user-friendly display
+  const formatMonth = (yearMonth) => {
+    if (!yearMonth) return '-';
+    
+    try {
+      const [year, month] = yearMonth.split('-');
+      const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+      
+      const monthIndex = parseInt(month, 10) - 1;
+      return `${monthNames[monthIndex]} ${year}`;
+    } catch (error) {
+      console.warn('Error formatting month:', yearMonth, error);
+      return yearMonth; // Fallback to original format
+    }
+  };
+
   const renderResumoGeral = () => {
     if (!resumoData) return null;
 
@@ -236,31 +255,22 @@ const Estatisticas = () => {
               <tr>
                 <th>Mês</th>
                 <th>Vendas</th>
-                <th>Quantidade</th>
+                <th>Quantidade de Produtos</th>
                 <th>Faturamento</th>
-                <th>Lucro</th>
+                <th>Lucro</th >
                 <th>Ticket Médio</th>
-                <th>Desconto Progressivo</th>
                 <th>Vendas 2+ Itens</th>
               </tr>
             </thead>
             <tbody>
               {vendasMensais.map((mes) => (
                 <tr key={mes.mes}>
-                  <td>{mes.mes}</td>
+                  <td>{formatMonth(mes.mes)}</td>
                   <td>{mes.numeroVendas}</td>
                   <td>{mes.quantidade}</td>
                   <td>{formatarMoeda(mes.faturamento)}</td>
                   <td className="text-success">{formatarMoeda(mes.lucro)}</td>
                   <td>{formatarMoeda(mes.ticketMedio)}</td>
-                  <td className="text-primary">
-                    {formatarMoeda(mes.descontoProgressivo || 0)}
-                    {mes.margemMelhoradaProgressivo > 0 && (
-                      <small className="d-block text-muted">
-                        +{mes.margemMelhoradaProgressivo.toFixed(2)}% margem
-                      </small>
-                    )}
-                  </td>
                   <td>
                     <Badge bg={mes.vendasMultiplosItens > 0 ? 'success' : 'secondary'}>
                       {mes.vendasMultiplosItens || 0}

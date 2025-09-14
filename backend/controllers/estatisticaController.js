@@ -9,6 +9,7 @@ const Venda = require('../models/Venda');
 const VendaCabecalho = require('../models/VendaCabecalho');
 const VendaItem = require('../models/VendaItem');
 const { calcularValorTotalEstoque, identificarEstoqueBaixo } = require('../utils/calculoLucro');
+const { getYearMonth } = require('../utils/dateUtils');
 const { Op } = require('sequelize');
 
 /**
@@ -168,7 +169,7 @@ const resumoGeral = async (req, res) => {
         lucroMes: Math.round(lucroMes * 100) / 100,
         faturamentoAno: Math.round(faturamentoAno * 100) / 100,
         lucroAno: Math.round(lucroAno * 100) / 100,
-        margemMes: faturamentoMes > 0 ? Math.round((lucroMes / (faturamentoMes - lucroMes)) * 10000) / 100 : 0,
+        margemMes: faturamentoMes > 0 ? Math.round((lucroMes / faturamentoMes) * 10000) / 100 : 0,
         ticketMedioMes: vendasMes > 0 ? Math.round((faturamentoMes / vendasMes) * 100) / 100 : 0
       },
       descontosProgressivos: {
@@ -241,8 +242,8 @@ const evolucaoVendasMensal = async (req, res) => {
 
     // Processar vendas
     vendas.forEach(venda => {
-      const data = new Date(venda.data);
-      const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+      // Use proper timezone-aware date processing
+      const chave = getYearMonth(venda.data);
       
       if (vendasPorMes[chave]) {
         // Calcular totais da venda

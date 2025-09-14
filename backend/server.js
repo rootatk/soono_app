@@ -1,3 +1,6 @@
+// Configure timezone for Fortaleza-CE, Brazil
+process.env.TZ = 'America/Fortaleza';
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -100,6 +103,8 @@ const startServer = async () => {
       console.log('🚀 ================================');
       console.log(`🎨 Servidor Sóonó rodando na porta ${PORT}`);
       console.log(`📍 http://localhost:${PORT}`);
+      console.log(`🌍 Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+      console.log(`🕐 Hora atual: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Fortaleza' })}`);
       console.log(`🧪 Teste a API: http://localhost:${PORT}/api/test`);
       console.log('📊 Endpoints disponíveis:');
       console.log('   • GET  /api/insumos');

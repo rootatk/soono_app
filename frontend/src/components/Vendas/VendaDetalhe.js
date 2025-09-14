@@ -6,6 +6,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import vendasService from '../../services/vendas';
 import { formatarMoeda } from '../../utils/formatarMoeda';
+import { formatDateForDisplay, formatDateTimeForDisplay } from '../../utils/dateUtils';
 
 const VendaDetalhe = () => {
   const { id } = useParams();
@@ -65,11 +66,6 @@ const VendaDetalhe = () => {
         {labels[status] || status}
       </Badge>
     );
-  };
-
-  const formatarData = (dataString) => {
-    if (!dataString) return '-';
-    return new Date(dataString).toLocaleString('pt-BR');
   };
 
   const calcularMargemGeral = (lucroTotal, valorTotal) => {
@@ -169,7 +165,7 @@ const VendaDetalhe = () => {
               <p className="text-muted mb-0">
                 {getStatusBadge(venda.status)}
                 <span className="ms-3">
-                  Criada em {formatarData(venda.createdAt)}
+                  Criada em {formatDateTimeForDisplay(venda.createdAt)}
                 </span>
               </p>
             </div>
@@ -225,9 +221,10 @@ const VendaDetalhe = () => {
                 <Col md={6}>
                   <p><strong>ID:</strong> #{venda.id}</p>
                   <p><strong>Status:</strong> {getStatusBadge(venda.status)}</p>
-                  <p><strong>Data de Criação:</strong> {formatarData(venda.createdAt)}</p>
+                  <p><strong>Data da Venda:</strong> {formatDateForDisplay(venda.data)}</p>
+                  <p><strong>Data de Criação:</strong> {formatDateTimeForDisplay(venda.createdAt)}</p>
                   {venda.updatedAt !== venda.createdAt && (
-                    <p><strong>Última Atualização:</strong> {formatarData(venda.updatedAt)}</p>
+                    <p><strong>Última Atualização:</strong> {formatDateTimeForDisplay(venda.updatedAt)}</p>
                   )}
                 </Col>
                 <Col md={6}>

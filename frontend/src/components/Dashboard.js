@@ -4,6 +4,7 @@ import { formatarMoeda, formatarNumero } from '../utils/formatarMoeda';
 import { estatisticaService } from '../services/estatisticas';
 import vendasService from '../services/vendas';
 import { insumoService } from '../services/insumos';
+import { formatDateForDisplay } from '../utils/dateUtils';
 
 const Dashboard = () => {
   const [metricas, setMetricas] = useState(null);
@@ -205,7 +206,7 @@ const Dashboard = () => {
                       {vendasRecentes.map(venda => (
                         <tr key={venda.id}>
                           <td>
-                            {new Date(venda.data).toLocaleDateString('pt-BR')}
+                            {formatDateForDisplay(venda.data)}
                           </td>
                           <td>
                             <strong>

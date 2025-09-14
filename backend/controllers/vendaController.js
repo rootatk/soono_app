@@ -7,6 +7,7 @@ const {
   simularPrecoComMargem,
   calcularDescontoCombo 
 } = require('../utils/calculoLucro');
+const { createDateInFortaleza, getCurrentDateInFortaleza } = require('../utils/dateUtils');
 
 // Estabelecer relações entre os models
 VendaCabecalho.hasMany(VendaItem, { foreignKey: 'venda_cabecalho_id', as: 'itens' });
@@ -237,12 +238,26 @@ const criar = async (req, res) => {
     const { 
       itens, 
       cliente, 
-      observacoes 
+      observacoes,
+      data // Add custom date field
     } = req.body;
     
     if (!itens || !Array.isArray(itens) || itens.length === 0) {
       await transaction.rollback();
       return res.status(400).json({ error: 'Itens da venda são obrigatórios' });
+    }
+
+    // Handle custom date - use provided date or default to current date
+    let dataVenda;
+    if (data) {
+      try {
+        dataVenda = createDateInFortaleza(data);
+      } catch (error) {
+        await transaction.rollback();
+        return res.status(400).json({ error: error.message });
+      }
+    } else {
+      dataVenda = getCurrentDateInFortaleza();
     }
     
     // Buscar produtos para obter custos atuais
@@ -308,7 +323,7 @@ const criar = async (req, res) => {
     // Criar cabeçalho da venda
     const vendaCabecalho = await VendaCabecalho.create({
       codigo: gerarCodigoVenda(),
-      data: new Date(),
+      data: dataVenda, // Use custom date instead of new Date()
       subtotal: totaisVenda.subtotal,
       desconto_percentual: totaisVenda.descontoCombo.percentualDesconto,
       desconto_valor: totaisVenda.descontoCombo.valorDesconto,
@@ -509,7 +524,7 @@ const simularPrecos = async (req, res) => {
 const atualizar = async (req, res) => {
   try {
     const { id } = req.params;
-    const { itens, cliente, observacoes } = req.body;
+    const { itens, cliente, observacoes, data } = req.body;
 
     // Verificar se a venda existe
     const vendaExistente = await VendaCabecalho.findByPk(id);
@@ -576,10 +591,11 @@ const atualizar = async (req, res) => {
       };
     });
 
+    // Calcular totais da venda
     const totaisCalculados = calcularTotaisVenda(itensFinais);
 
-    // Atualizar cabeçalho da venda
-    await vendaExistente.update({
+    // Validate and prepare custom date if provided
+    let updateData = {
       quantidade_produtos: totaisCalculados.quantidadeProdutos,
       subtotal: totaisCalculados.subtotal,
       desconto_percentual: totaisCalculados.descontoPercentual,
@@ -588,7 +604,19 @@ const atualizar = async (req, res) => {
       lucro_total: totaisCalculados.lucroTotal,
       cliente,
       observacoes
-    });
+    };
+
+    // Handle custom date update
+    if (data) {
+      try {
+        updateData.data = createDateInFortaleza(data);
+      } catch (error) {
+        return res.status(400).json({ error: error.message });
+      }
+    }
+
+    // Atualizar cabeçalho da venda
+    await vendaExistente.update(updateData);
 
     // Criar novos itens com custos corretos após desconto
     const itensParaCriar = itensFinais.map(item => {
