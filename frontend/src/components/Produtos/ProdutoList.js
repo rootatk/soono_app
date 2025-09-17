@@ -214,33 +214,46 @@ const ProdutoList = () => {
           {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
           {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
 
-          {/* Filtros */}
-          <Card className="mb-4">
-            <Card.Body>
-              <Row>
+          {/* Filtros - Card Style */}
+          <div className="card card-soono mb-4">
+            <div className="card-header">
+              <h5 className="mb-0">
+                <i className="fas fa-filter me-2"></i>
+                Filtros
+              </h5>
+            </div>
+            <div className="card-body">
+              <Row className="g-3">
+                {/* Busca */}
                 <Col md={4}>
-                  <InputGroup>
-                    <Form.Control
-                      type="text"
-                      placeholder="Buscar produtos..."
-                      value={busca}
-                      onChange={(e) => setBusca(e.target.value)}
-                    />
-                  </InputGroup>
+                  <label className="form-label">Buscar</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Buscar produtos..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                  />
                 </Col>
+                {/* Categoria */}
                 <Col md={3}>
-                  <Form.Select
+                  <label className="form-label">Categoria</label>
+                  <select
+                    className="form-select"
                     value={categoriaFiltro}
                     onChange={(e) => setCategoriaFiltro(e.target.value)}
                   >
-                    <option value="">Todas as categorias</option>
+                    <option value="">Todas</option>
                     {categorias.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
-                  </Form.Select>
+                  </select>
                 </Col>
+                {/* Ordenação */}
                 <Col md={3}>
-                  <Form.Select
+                  <label className="form-label">Ordenação</label>
+                  <select
+                    className="form-select"
                     value={ordenacao}
                     onChange={(e) => setOrdenacao(e.target.value)}
                   >
@@ -250,23 +263,25 @@ const ProdutoList = () => {
                     <option value="preco_desc">Maior Preço</option>
                     <option value="custo_asc">Menor Custo</option>
                     <option value="custo_desc">Maior Custo</option>
-                  </Form.Select>
+                  </select>
                 </Col>
-                <Col md={2}>
-                  <Button 
-                    variant="outline-secondary"
+                {/* Limpar Filtros */}
+                <Col md={2} className="d-flex align-items-end">
+                  <button 
+                    className="btn btn-outline-secondary w-100"
                     onClick={() => {
                       setBusca('');
                       setCategoriaFiltro('');
                       setOrdenacao('nome');
                     }}
                   >
-                    Limpar
-                  </Button>
+                    <i className="fas fa-eraser me-2"></i>
+                    Limpar Filtros
+                  </button>
                 </Col>
               </Row>
-            </Card.Body>
-          </Card>
+            </div>
+          </div>
 
           {/* Lista de Produtos */}
           {produtosFiltrados.length === 0 ? (

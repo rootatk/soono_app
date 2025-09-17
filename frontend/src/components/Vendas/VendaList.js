@@ -229,61 +229,65 @@ const VendaList = () => {
         </Col>
       </Row>
 
-      {/* Filtros */}
-      <Row className="mb-4">
-        <Col>
-          <Card>
-            <Card.Body>
-              <Row>
-                <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Status</Form.Label>
-                    <Form.Select
-                      value={filtros.status}
-                      onChange={(e) => handleFiltroChange('status', e.target.value)}
-                    >
-                      <option value="">Todos</option>
-                      <option value="rascunho">Rascunho</option>
-                      <option value="finalizada">Finalizada</option>
-                      <option value="cancelada">Cancelada</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Data Início</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={filtros.dataInicio}
-                      onChange={(e) => handleFiltroChange('dataInicio', e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Data Fim</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={filtros.dataFim}
-                      onChange={(e) => handleFiltroChange('dataFim', e.target.value)}
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={3} className="d-flex align-items-end">
-                  <Button 
-                    variant="outline-secondary" 
-                    onClick={limparFiltros}
-                    className="w-100"
-                  >
-                    <i className="fas fa-times me-2"></i>
-                    Limpar
-                  </Button>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {/* Filtros - Card Style Consistent with /insumos */}
+      <div className="card card-soono mb-4">
+        <div className="card-header">
+          <h5 className="mb-0">
+            <i className="fas fa-filter me-2"></i>
+            Filtros
+          </h5>
+        </div>
+        <div className="card-body">
+          <Row className="g-3">
+            {/* Status */}
+            <Col md={4}>
+              <label className="form-label">Status</label>
+              <select
+                className="form-select"
+                value={filtros.status}
+                onChange={(e) => handleFiltroChange('status', e.target.value)}
+              >
+                <option value="">Todos</option>
+                <option value="rascunho">Rascunho</option>
+                <option value="finalizada">Finalizada</option>
+                <option value="cancelada">Cancelada</option>
+              </select>
+            </Col>
+            {/* Data Início */}
+            <Col md={4}>
+              <label className="form-label">Data Início</label>
+              <input
+                type="date"
+                className="form-control"
+                value={filtros.dataInicio}
+                onChange={(e) => handleFiltroChange('dataInicio', e.target.value)}
+              />
+            </Col>
+            {/* Data Fim */}
+            <Col md={4}>
+              <label className="form-label">Data Fim</label>
+              <input
+                type="date"
+                className="form-control"
+                value={filtros.dataFim}
+                onChange={(e) => handleFiltroChange('dataFim', e.target.value)}
+              />
+            </Col>
+          </Row>
+          {/* Botão Limpar */}
+          <Row className="mt-3">
+            <Col xs={12} className="d-flex justify-content-end">
+              <button 
+                className="btn btn-outline-secondary"
+                onClick={limparFiltros}
+              >
+                <i className="fas fa-eraser me-2"></i>
+                Limpar Filtros
+              </button>
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* Alertas */}
       {error && (
