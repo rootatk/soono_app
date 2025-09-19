@@ -3,6 +3,8 @@
 # dependencies
 /node_modules
 /frontend/node_modules
+/desktop/node_modules
+/desktop/backend/node_modules
 /.pnp
 .pnp.js
 
@@ -26,10 +28,46 @@ yarn-error.log*
 # ignorar banco local
 backend/database/soono.db
 backend/backups
+desktop/backend/database/soono.db
+desktop/backend/backups
 
 # ignorar banco de imagens e backup
 backend/uploads
 backend/uploads_backup
+desktop/backend/uploads
+desktop/backend/uploads_backup
 
 # logs
 backend/logs
+
+# Logs and runtime files
+*.log
+renderer.log
+protocol.log
+logs/
+
+# Build outputs (from electron-packager or electron-builder)
+dist/
+desktop/dist/
+build/
+*.exe
+*.dmg
+*.pkg
+*.deb
+*.snap
+*.appimage
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# Environment and config (if any)
+.env
+.env.local
+config.json
+
+# Temporary or generated files
+.tmp/
+.cache/

@@ -1,0 +1,44 @@
+{
+  "name": "soono-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "Soono Desktop App (Electron)",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "package:win": "electron-packager . Soono --platform=win32 --arch=x64 --out=dist --overwrite",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.soono.desktop",
+    "productName": "Soono Desktop",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!build/**/*",
+      "!node_modules/**/*",
+      "../backend/**/*",
+      "../frontend/build/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "sign": false,
+      "forceCodeSigning": false
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 {
   "name": "soono-frontend",
   "version": "1.0.0",
+  "homepage": ".",
   "description": "Sistema de Gestão Sóonó Atelier - Frontend",
   "private": true,
   "dependencies": {

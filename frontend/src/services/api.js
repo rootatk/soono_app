@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// Detect if running in Electron
+const isElectron = window && window.process && window.process.type;
+
 // Configuração base do Axios
 const api = axios.create({
     baseURL: 'http://localhost:3001/api',
@@ -13,6 +16,12 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+
+    // Ensure the URL is absolute for Electron environment
+    if (config.url && !config.url.startsWith('http')) {
+      config.url = `http://localhost:3001/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
+    }
+
     return config;
   },
   (error) => {
