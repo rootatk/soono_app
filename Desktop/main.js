@@ -1,6 +1,31 @@
-const { app, BrowserWindow, protocol } = require('electron');
+const { app, BrowserWindow, protocol, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// Register the 'app' scheme as privileged (required for custom protocols)
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+]);
+
+function getContentType(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes = {
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+}
 
 let backendProcess;
 
@@ -102,15 +127,22 @@ function startBackend() {
 }
 
 app.whenReady().then(() => {
+
   // Register custom 'app' protocol to serve static files when index.html uses app:// URLs
   try {
-    protocol.registerFileProtocol('app', (request, callback) => {
+    protocol.handle('app', (request) => {
       try {
-  // request.url is like 'app://static/js/main...' or 'app:///static/js/main...'
-  let url = request.url.replace(/^app:\/\//, '');
-  // Remove any leading slashes or './' so path.join doesn't treat it as absolute
-  url = url.replace(/^\/+/, '');
-  url = url.replace(/^\.\/*/, '');
+        let url = request.url.replace(/^app:\/\//, '');
+        // Remove any leading slashes or './' so path.join doesn't treat it as absolute
+        url = url.replace(/^\/+/, '');
+        url = url.replace(/^\.\/*/, '');
+        // Handle the root case: 'index.html/' or 'index.html' should load 'index.html'
+        if (url === 'index.html/' || url === 'index.html') {
+          url = 'index.html';
+        } else if (url.startsWith('index.html/')) {
+          // For assets: remove 'index.html/' prefix
+          url = url.replace('index.html/', '');
+        }
         let basePath;
         if (process.env.NODE_ENV === 'production' || !process.execPath.includes('electron')) {
           // Packaged: resources/app/frontend/build
@@ -125,10 +157,18 @@ app.whenReady().then(() => {
           const logPath = path.join(app.getPath('userData'), 'protocol.log');
           fs.appendFileSync(logPath, `${new Date().toISOString()} RESOLVE ${request.url} -> ${fsPath}\n`);
         } catch (e) {}
-        callback({ path: fsPath });
+        // Check if the file exists before serving
+        if (!fs.existsSync(fsPath)) {
+          console.error('File does not exist:', fsPath);
+          return new Response(null, { status: 404, statusText: 'File not found' });
+        } else {
+            const content = fs.readFileSync(fsPath);
+            const contentType = getContentType(fsPath); // Helper function for MIME type
+            return new Response(content, { headers: { 'content-type': contentType } });
+        }
       } catch (err) {
         console.error('Error in app protocol handler:', err);
-        callback({ error: -6 });
+        return new Response(null, { status: 500, statusText: 'Internal server error' });
       }
     });
   } catch (err) {

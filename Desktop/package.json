@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
+    "prepackage:win": "xcopy ..\\frontend\\build frontend\\build /E /I /Y",
     "package:win": "electron-packager . Soono --platform=win32 --arch=x64 --out=dist --overwrite",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
